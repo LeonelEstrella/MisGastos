@@ -49,4 +49,10 @@
         android:layout_marginTop="12dp"
         android:layout_weight="1" />
 
+    <Button
+        android:id="@+id/btnLogout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cerrar sesión"/>
+
 </LinearLayout>

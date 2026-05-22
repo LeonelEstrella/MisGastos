@@ -10,6 +10,8 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.catedra.misgastos.R
 import com.catedra.misgastos.databinding.FragmentExpenseListBinding
+import com.google.firebase.auth.FirebaseAuth
+import com.catedra.misgastos.ui.auth.LoginFragment
 
 class ExpenseListFragment: Fragment() {
 
@@ -24,6 +26,7 @@ class ExpenseListFragment: Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
+
     ): View {
         _binding = FragmentExpenseListBinding.inflate(inflater, container, false)
         return binding.root
@@ -68,6 +71,14 @@ class ExpenseListFragment: Fragment() {
     private fun setupListeners() {
         binding.buttonAddExpense.setOnClickListener {
             navigateToForm()
+        }
+
+        binding.btnLogout.setOnClickListener {
+            FirebaseAuth.getInstance().signOut()
+
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, LoginFragment())
+                .commit()
         }
     }
 
