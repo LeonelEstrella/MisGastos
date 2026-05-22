@@ -1,65 +1,61 @@
 package com.catedra.misgastos.data.repository
 
 import com.catedra.misgastos.data.model.Expense
-import kotlinx.coroutines.delay
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class ExpenseRepository {
 
-    companion object{
-        private val expenses = mutableListOf(
-            Expense(
-                id = "1",
-                amount = 8500.0,
-                category = "Comida",
-                description = "Almuerzo",
-                date = System.currentTimeMillis()
-            ),
-            Expense(
-                id = "2",
-                amount = 32000.0,
-                category = "Supermercado",
-                description = "Compra Semanal",
-                date = System.currentTimeMillis()
-            ),
-            Expense(
-                id = "3",
-                amount = 1200.0,
-                category = "Transporte",
-                description = "Subte",
-                date = System.currentTimeMillis()
-            )
-        )
-    }
+    private val db = FirebaseFirestore.getInstance()
+
+    private fun getExpensesCollection() = db.collection("usuarios")
+        .document(FirebaseAuth.getInstance().currentUser!!.uid)
+        .collection("gastos")
 
     suspend fun getExpenses(): List<Expense> {
-        delay(500)
-        return expenses.toList()
+
+        val snapshot = getExpensesCollection()
+            .get()
+            .await()
+
+        return snapshot.documents.mapNotNull {
+            it.toObject(Expense::class.java)
+        }
     }
 
     suspend fun getExpenseById(id: String): Expense? {
-        delay(300)
-        return expenses.find { it.id == id }
+
+        val document = getExpensesCollection()
+            .document(id)
+            .get()
+            .await()
+
+        return document.toObject(Expense::class.java)
     }
 
     suspend fun addExpense(expense: Expense) {
-        delay(300)
+
+        val document = getExpensesCollection().document()
 
         val newExpense = expense.copy(
-            id = System.currentTimeMillis().toString(),
+            id = document.id,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
-        expenses.add(newExpense)
+
+        document.set(newExpense).await()
     }
 
     suspend fun updateExpense(expense: Expense) {
-        delay(300)
-        val index = expenses.indexOfFirst { it.id == expense.id }
 
-        if (index != -1) {
-            expenses[index] = expense.copy(
-                updatedAt = System.currentTimeMillis()
-            )
-        }
+        val updatedExpense = expense.copy(
+            updatedAt = System.currentTimeMillis()
+        )
+
+        getExpensesCollection()
+            .document(expense.id)
+            .set(updatedExpense)
+            .await()
     }
 }
