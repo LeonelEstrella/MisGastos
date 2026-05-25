@@ -7,7 +7,8 @@ import com.catedra.misgastos.data.model.Expense
 import com.catedra.misgastos.databinding.ItemExpenseBinding
 
 class ExpenseAdapter(
-    private val onItemClick: (Expense) -> Unit
+    private val onItemClick: (Expense) -> Unit,
+    private val onDeleteClick: (Expense) -> Unit
 ): RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder>() {
 
     private var expenses: List<Expense> = emptyList()
@@ -33,16 +34,24 @@ class ExpenseAdapter(
 
     override fun getItemCount(): Int = expenses.size
 
+    private fun formatAmount(amount: Double): String {
+        return "$ %.2f".format(amount)
+    }
+
     inner class ExpenseViewHolder(
         private val binding: ItemExpenseBinding
     ): RecyclerView.ViewHolder(binding.root) {
         fun bind(expense: Expense) {
             binding.textCategory.text = expense.category
             binding.textDescription.text = expense.description
-            binding.textAmount.text = "$${expense.amount}"
+            binding.textAmount.text = formatAmount(expense.amount)
 
             binding.root.setOnClickListener {
                 onItemClick(expense)
+            }
+
+            binding.buttonDeleteExpense.setOnClickListener {
+                onDeleteClick(expense)
             }
         }
     }

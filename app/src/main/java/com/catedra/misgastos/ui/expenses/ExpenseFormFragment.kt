@@ -11,6 +11,12 @@ import com.catedra.misgastos.data.model.Expense
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.databinding.FragmentExpenseFormBinding
 import kotlinx.coroutines.launch
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.tasks.await
+import com.bumptech.glide.Glide
 
 class ExpenseFormFragment: Fragment() {
 
@@ -24,6 +30,17 @@ class ExpenseFormFragment: Fragment() {
 
     private val isEditMode: Boolean
         get() = expenseId != null
+
+    private var selectedImageUri: Uri? = null
+
+    private val pickImageLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                selectedImageUri = uri
+                binding.imageReceiptPreview.setImageURI(uri)
+                binding.imageReceiptPreview.isVisible = true
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,6 +92,14 @@ class ExpenseFormFragment: Fragment() {
                 binding.editAmount.setText(expense.amount.toString())
                 binding.editCategory.setText(expense.category)
                 binding.editDescription.setText(expense.description)
+
+                if (!expense.imageUrl.isNullOrBlank()) {
+                    binding.imageReceiptPreview.isVisible = true
+
+                    Glide.with(this@ExpenseFormFragment)
+                        .load(expense.imageUrl)
+                        .into(binding.imageReceiptPreview)
+                }
             } else {
                 showError("No se encontró el gasto")
             }
@@ -89,6 +114,10 @@ class ExpenseFormFragment: Fragment() {
         binding.buttonCancel.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
+
+        binding.buttonSelectReceipt.setOnClickListener {
+            pickImageLauncher.launch("image/*")
+        }
     }
 
     private fun saveExpense() {
@@ -101,25 +130,34 @@ class ExpenseFormFragment: Fragment() {
             return
         }
 
-        val amount = amountText.toDoubleOrNull()
+        val normalizedAmountText = amountText.replace(",", ".")
+        val amount = normalizedAmountText.toDoubleOrNull()
 
         if (amount == null || amount <= 0) {
-            showError("Ingresá im monto válido")
+            showError("Ingresá un monto válido")
             return
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             binding.progressBar.isVisible = true
             binding.textError.isVisible = false
+            binding.buttonSave.isEnabled = false
 
-            if (isEditMode) {
-                updateExpense(amount, category, description)
-            } else {
-                createExpense(amount, category, description)
+            try {
+                if (isEditMode) {
+                    updateExpense(amount, category, description)
+                } else {
+                    createExpense(amount, category, description)
+                }
+
+                parentFragmentManager.popBackStack()
+
+            } catch (e: Exception) {
+                showError(e.message ?: "Error al guardar el gasto")
+            } finally {
+                binding.progressBar.isVisible = false
+                binding.buttonSave.isEnabled = true
             }
-
-            binding.progressBar.isVisible = false
-            parentFragmentManager.popBackStack()
         }
     }
 
@@ -128,11 +166,16 @@ class ExpenseFormFragment: Fragment() {
         category: String,
         description: String
     ) {
+        val imageUrl = selectedImageUri?.let { uri ->
+            uploadReceiptImage(uri)
+        }
+
         val newExpense = Expense(
             amount = amount,
             category = category,
             description = description,
-            date = System.currentTimeMillis()
+            date = System.currentTimeMillis(),
+            imageUrl = imageUrl
         )
 
         repository.addExpense(newExpense)
@@ -146,13 +189,36 @@ class ExpenseFormFragment: Fragment() {
 
         val oldExpense = currentExpense ?: return
 
+        val finalImageUrl = selectedImageUri?.let { uri ->
+            uploadReceiptImage(uri)
+        } ?: oldExpense.imageUrl
+
         val updatedExpense = oldExpense.copy(
             amount = amount,
             category = category,
             description = description,
+            imageUrl = finalImageUrl
         )
 
         repository.updateExpense(updatedExpense)
+    }
+
+    private  suspend fun  uploadReceiptImage (uri: Uri): String {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+            ?: throw Exception("Usuario no autenticado")
+
+        val fileName = "${System.currentTimeMillis()}.jpg"
+
+        val storeRef = FirebaseStorage.getInstance()
+            .reference
+            .child("users")
+            .child(userId)
+            .child("receipts")
+            .child(fileName)
+
+        storeRef.putFile(uri).await()
+
+        return storeRef.downloadUrl.await().toString()
     }
 
     private fun showError(message: String) {

@@ -57,6 +57,14 @@
             android:textAppearance="?attr/textAppearanceBodyMedium"
             tools:text="Fecha: 01/06/2026" />
 
+        <ImageView
+            android:id="@+id/imageReceipt"
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:layout_marginTop="16dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/buttonEdit"
             android:layout_width="match_parent"
@@ -65,9 +73,18 @@
             android:text="Editar gasto" />
 
         <Button
+            android:id="@+id/buttonDelete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Eliminar gasto"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#D32F2F" />
+
+        <Button
             android:id="@+id/buttonBack"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
             android:text="Volver" />
 
     </LinearLayout>

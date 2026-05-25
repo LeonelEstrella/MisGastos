@@ -41,6 +41,21 @@
             android:inputType="textCapSentences"
             tools:text="Almuerzo" />
 
+        <Button
+            android:id="@+id/buttonSelectReceipt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Agregar comprobante" />
+
+        <ImageView
+            android:id="@+id/imageReceiptPreview"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="12dp"
+            android:scaleType="centerCrop"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/textError"
             android:layout_width="match_parent"

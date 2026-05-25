@@ -1,12 +1,15 @@
 package com.catedra.misgastos.ui.expenses
 
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import com.catedra.misgastos.R
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.databinding.FragmentExpenseDetailBinding
@@ -47,6 +50,10 @@ class ExpenseDetailFragment: Fragment() {
             parentFragmentManager.popBackStack()
         }
 
+        binding.buttonDelete.setOnClickListener {
+            confirmDeleteExpense()
+        }
+
         binding.buttonEdit.setOnClickListener {
             expenseId?.let { id ->
                 navigateToEdit(id)
@@ -66,9 +73,19 @@ class ExpenseDetailFragment: Fragment() {
 
             if (expense != null) {
                 binding.textCategory.text = expense.category
-                binding.textAmount.text = "$${expense.amount}"
+                binding.textAmount.text = formatAmount(expense.amount)
                 binding.textDescription.text = expense.description
                 binding.textDate.text = "Fecha: ${formatDate(expense.date)}"
+
+                if (!expense.imageUrl.isNullOrBlank()) {
+                    binding.imageReceipt.isVisible = true
+
+                    Glide.with(this@ExpenseDetailFragment)
+                        .load(expense.imageUrl)
+                        .into(binding.imageReceipt)
+                } else {
+                    binding.imageReceipt.isVisible = false
+                }
             }
         }
     }
@@ -85,6 +102,44 @@ class ExpenseDetailFragment: Fragment() {
     private fun formatDate(dateMillis: Long): String {
         val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         return formatter.format(Date(dateMillis))
+    }
+
+    private fun formatAmount(amount: Double): String {
+        return "$ %.2f".format(amount)
+    }
+
+    private fun confirmDeleteExpense() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Eliminar gasto")
+            .setMessage("¿Desea eliminar este gasto? Esta acción no se puede deshacer.")
+            .setPositiveButton("Eliminar") { _, _ ->
+                deleteExpense()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun deleteExpense() {
+        val id = expenseId ?: return
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                binding.progressBar.isVisible = true
+
+                repository.deleteExpense(id)
+
+                binding.progressBar.isVisible = false
+
+                parentFragmentManager.popBackStack()
+            } catch (e: Exception) {
+                binding.progressBar.isVisible = false
+                Toast.makeText(
+                    requireContext(),
+                    e.message ?: "Error al eliminar gasto",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     override fun onDestroyView() {

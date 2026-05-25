@@ -58,4 +58,11 @@ class ExpenseRepository {
             .set(updatedExpense)
             .await()
     }
+
+    suspend fun deleteExpense(id: String) {
+        getExpensesCollection()
+            .document(id)
+            .delete()
+            .await()
+    }
 }
