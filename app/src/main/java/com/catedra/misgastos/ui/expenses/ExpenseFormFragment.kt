@@ -38,7 +38,7 @@ class ExpenseFormFragment: Fragment() {
             if (uri != null) {
                 selectedImageUri = uri
                 binding.imageReceiptPreview.setImageURI(uri)
-                binding.imageReceiptPreview.isVisible = true
+                binding.containerReceiptPreview.isVisible = true
             }
         }
 
@@ -94,7 +94,7 @@ class ExpenseFormFragment: Fragment() {
                 binding.editDescription.setText(expense.description)
 
                 if (!expense.imageUrl.isNullOrBlank()) {
-                    binding.imageReceiptPreview.isVisible = true
+                    binding.containerReceiptPreview.isVisible = true
 
                     Glide.with(this@ExpenseFormFragment)
                         .load(expense.imageUrl)
@@ -118,6 +118,16 @@ class ExpenseFormFragment: Fragment() {
         binding.buttonSelectReceipt.setOnClickListener {
             pickImageLauncher.launch("image/*")
         }
+
+        binding.buttonRemoveReceipt.setOnClickListener {
+            removeSelectedReceipt()
+        }
+    }
+
+    private fun removeSelectedReceipt() {
+        selectedImageUri = null
+        binding.imageReceiptPreview.setImageDrawable(null)
+        binding.containerReceiptPreview.isVisible = false
     }
 
     private fun saveExpense() {

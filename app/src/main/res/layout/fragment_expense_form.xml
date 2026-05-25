@@ -48,13 +48,32 @@
             android:layout_marginTop="16dp"
             android:text="Agregar comprobante" />
 
-        <ImageView
-            android:id="@+id/imageReceiptPreview"
+        <FrameLayout
+            android:id="@+id/containerReceiptPreview"
             android:layout_width="match_parent"
             android:layout_height="220dp"
             android:layout_marginTop="12dp"
-            android:scaleType="centerCrop"
-            android:visibility="gone" />
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/imageReceiptPreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                tools:src="@drawable/ic_launcher_background" />
+
+            <ImageButton
+                android:id="@+id/buttonRemoveReceipt"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="8dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="Quitar comprobante"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:tint="#CC000000" />
+
+        </FrameLayout>
 
         <TextView
             android:id="@+id/textError"
