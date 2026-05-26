@@ -1,27 +1,31 @@
 package com.catedra.misgastos.ui.expenses
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import com.catedra.misgastos.data.model.Expense
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.databinding.FragmentExpenseFormBinding
-import kotlinx.coroutines.launch
-import android.net.Uri
-import androidx.activity.result.contract.ActivityResultContracts
+import com.google.android.gms.location.LocationServices
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import com.bumptech.glide.Glide
 
-class ExpenseFormFragment: Fragment() {
+class ExpenseFormFragment : Fragment() {
 
-    private var _binding : FragmentExpenseFormBinding? = null
-    private  val binding get() = _binding!!
+    private var _binding: FragmentExpenseFormBinding? = null
+    private val binding get() = _binding!!
 
     private val repository = ExpenseRepository()
 
@@ -32,6 +36,21 @@ class ExpenseFormFragment: Fragment() {
         get() = expenseId != null
 
     private var selectedImageUri: Uri? = null
+    private var selectedLatitude: Double? = null
+    private var selectedLongitude: Double? = null
+
+    private val fusedLocationClient by lazy {
+        LocationServices.getFusedLocationProviderClient(requireActivity())
+    }
+
+    private val locationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                getCurrentLocation()
+            } else {
+                showError("Necesitás permitir ubicación para guardar la ubicación actual")
+            }
+        }
 
     private val pickImageLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -44,7 +63,6 @@ class ExpenseFormFragment: Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         expenseId = arguments?.getString(ARG_EXPENSE_ID)
     }
 
@@ -58,8 +76,6 @@ class ExpenseFormFragment: Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
         setupInitialState()
         setupListeners()
     }
@@ -68,7 +84,6 @@ class ExpenseFormFragment: Fragment() {
         if (isEditMode) {
             binding.textFormTitle.text = "Editar gasto"
             binding.buttonSave.text = "Actualizar"
-
             loadExpenseForEdit()
         } else {
             binding.textFormTitle.text = "Nuevo gasto"
@@ -92,6 +107,10 @@ class ExpenseFormFragment: Fragment() {
                 binding.editAmount.setText(expense.amount.toString())
                 binding.editCategory.setText(expense.category)
                 binding.editDescription.setText(expense.description)
+
+                selectedLatitude = expense.latitude
+                selectedLongitude = expense.longitude
+                updateLocationText()
 
                 if (!expense.imageUrl.isNullOrBlank()) {
                     binding.containerReceiptPreview.isVisible = true
@@ -122,6 +141,74 @@ class ExpenseFormFragment: Fragment() {
         binding.buttonRemoveReceipt.setOnClickListener {
             removeSelectedReceipt()
         }
+
+        binding.buttonUseCurrentLocation.setOnClickListener {
+            requestCurrentLocation()
+        }
+    }
+
+    private fun requestCurrentLocation() {
+        val permission = Manifest.permission.ACCESS_FINE_LOCATION
+
+        if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) {
+            getCurrentLocation()
+        } else {
+            locationPermissionLauncher.launch(permission)
+        }
+    }
+
+    private fun getCurrentLocation() {
+
+        val locationRequest =
+            com.google.android.gms.location.LocationRequest.Builder(
+                com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
+                1000
+            ).build()
+
+        val locationCallback =
+            object : com.google.android.gms.location.LocationCallback() {
+
+                override fun onLocationResult(result: com.google.android.gms.location.LocationResult) {
+
+                    val location = result.lastLocation
+
+                    if (location != null) {
+
+                        selectedLatitude = location.latitude
+                        selectedLongitude = location.longitude
+
+                        updateLocationText()
+
+                        fusedLocationClient.removeLocationUpdates(this)
+
+                    } else {
+                        showError("No se pudo obtener ubicación")
+                    }
+                }
+            }
+
+        try {
+
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
+                locationCallback,
+                requireActivity().mainLooper
+            )
+
+        } catch (e: SecurityException) {
+
+            showError("No hay permiso de ubicación")
+
+        }
+    }
+
+    private fun updateLocationText() {
+        if (selectedLatitude != null && selectedLongitude != null) {
+            binding.textSelectedLocation.text =
+                "Ubicación seleccionada: $selectedLatitude, $selectedLongitude"
+        } else {
+            binding.textSelectedLocation.text = "Sin ubicación"
+        }
     }
 
     private fun removeSelectedReceipt() {
@@ -140,8 +227,7 @@ class ExpenseFormFragment: Fragment() {
             return
         }
 
-        val normalizedAmountText = amountText.replace(",", ".")
-        val amount = normalizedAmountText.toDoubleOrNull()
+        val amount = amountText.replace(",", ".").toDoubleOrNull()
 
         if (amount == null || amount <= 0) {
             showError("Ingresá un monto válido")
@@ -161,7 +247,6 @@ class ExpenseFormFragment: Fragment() {
                 }
 
                 parentFragmentManager.popBackStack()
-
             } catch (e: Exception) {
                 showError(e.message ?: "Error al guardar el gasto")
             } finally {
@@ -185,7 +270,9 @@ class ExpenseFormFragment: Fragment() {
             category = category,
             description = description,
             date = System.currentTimeMillis(),
-            imageUrl = imageUrl
+            imageUrl = imageUrl,
+            latitude = selectedLatitude,
+            longitude = selectedLongitude
         )
 
         repository.addExpense(newExpense)
@@ -196,7 +283,6 @@ class ExpenseFormFragment: Fragment() {
         category: String,
         description: String
     ) {
-
         val oldExpense = currentExpense ?: return
 
         val finalImageUrl = selectedImageUri?.let { uri ->
@@ -207,13 +293,15 @@ class ExpenseFormFragment: Fragment() {
             amount = amount,
             category = category,
             description = description,
-            imageUrl = finalImageUrl
+            imageUrl = finalImageUrl,
+            latitude = selectedLatitude,
+            longitude = selectedLongitude
         )
 
         repository.updateExpense(updatedExpense)
     }
 
-    private  suspend fun  uploadReceiptImage (uri: Uri): String {
+    private suspend fun uploadReceiptImage(uri: Uri): String {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
             ?: throw Exception("Usuario no autenticado")
 

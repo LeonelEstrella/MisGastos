@@ -8,6 +8,10 @@
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!--con esto hago que no sea obligatoria la camara-->
     <uses-feature
         android:name="android.hardware.camera"
@@ -31,6 +35,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBfg0raxl6nmPw3C0XusrRpaY8NiL6YzgA" />
     </application>
 
 </manifest>

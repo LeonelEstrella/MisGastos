@@ -13,12 +13,17 @@ import com.bumptech.glide.Glide
 import com.catedra.misgastos.R
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.databinding.FragmentExpenseDetailBinding
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ExpenseDetailFragment: Fragment() {
+class ExpenseDetailFragment : Fragment() {
 
     private var _binding: FragmentExpenseDetailBinding? = null
     private val binding get() = _binding!!
@@ -26,6 +31,7 @@ class ExpenseDetailFragment: Fragment() {
     private val repository = ExpenseRepository()
 
     private var expenseId: String? = null
+    private var googleMap: GoogleMap? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,8 +48,6 @@ class ExpenseDetailFragment: Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
         loadExpense()
 
         binding.buttonBack.setOnClickListener {
@@ -86,7 +90,34 @@ class ExpenseDetailFragment: Fragment() {
                 } else {
                     binding.imageReceipt.isVisible = false
                 }
+
+                if (expense.latitude != null && expense.longitude != null) {
+                    binding.mapContainer.isVisible = true
+                    showMap(expense.latitude, expense.longitude)
+                } else {
+                    binding.mapContainer.isVisible = false
+                }
             }
+        }
+    }
+
+    private fun showMap(latitude: Double, longitude: Double) {
+        val mapFragment = SupportMapFragment.newInstance()
+
+        childFragmentManager.beginTransaction()
+            .replace(R.id.mapContainer, mapFragment)
+            .commit()
+
+        mapFragment.getMapAsync { map ->
+            val position = LatLng(latitude, longitude)
+
+            map.clear()
+            map.addMarker(
+                MarkerOptions()
+                    .position(position)
+                    .title("Ubicación del gasto")
+            )
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 16f))
         }
     }
 
@@ -129,7 +160,6 @@ class ExpenseDetailFragment: Fragment() {
                 repository.deleteExpense(id)
 
                 binding.progressBar.isVisible = false
-
                 parentFragmentManager.popBackStack()
             } catch (e: Exception) {
                 binding.progressBar.isVisible = false
@@ -144,6 +174,7 @@ class ExpenseDetailFragment: Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        googleMap = null
         _binding = null
     }
 

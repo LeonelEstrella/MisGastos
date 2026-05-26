@@ -65,6 +65,13 @@
             android:scaleType="centerCrop"
             android:visibility="gone" />
 
+        <FrameLayout
+            android:id="@+id/mapContainer"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/buttonEdit"
             android:layout_width="match_parent"

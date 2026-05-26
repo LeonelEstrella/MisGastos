@@ -93,6 +93,21 @@
             android:visibility="gone" />
 
         <Button
+            android:id="@+id/buttonUseCurrentLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Usar ubicación actual" />
+
+        <TextView
+            android:id="@+id/textSelectedLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Sin ubicación"
+            android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+        <Button
             android:id="@+id/buttonSave"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -104,6 +119,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Cancelar" />
+
+
+
 
     </LinearLayout>
 
