@@ -21,6 +21,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.catedra.misgastos.data.repository.SettingsRepository
+import com.catedra.misgastos.utils.NotificationHelper
 
 class ExpenseFormFragment : Fragment() {
 
@@ -60,6 +62,8 @@ class ExpenseFormFragment : Fragment() {
                 binding.containerReceiptPreview.isVisible = true
             }
         }
+
+    private val settingsRepository = SettingsRepository()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -240,11 +244,15 @@ class ExpenseFormFragment : Fragment() {
             binding.buttonSave.isEnabled = false
 
             try {
+                val previousMonthlyTotal = repository.getMonthlyTotal()
+
                 if (isEditMode) {
                     updateExpense(amount, category, description)
                 } else {
                     createExpense(amount, category, description)
                 }
+
+                checkMonthlyLimitAndNotify(previousMonthlyTotal)
 
                 parentFragmentManager.popBackStack()
             } catch (e: Exception) {
@@ -322,6 +330,27 @@ class ExpenseFormFragment : Fragment() {
     private fun showError(message: String) {
         binding.textError.isVisible = true
         binding.textError.text = message
+    }
+
+    private suspend fun checkMonthlyLimitAndNotify(previousMonthlyTotal : Double) {
+        val settings = settingsRepository.getSettings()
+
+        if (!settings.notificationsEnabled || settings.monthlyLimit <= 0) {
+            return
+        }
+
+        val newMonthlyTotal = repository.getMonthlyTotal()
+
+        val wasBelowOrEqualLimit = previousMonthlyTotal <= settings.monthlyLimit
+        val isNowOverLimit = newMonthlyTotal > settings.monthlyLimit
+
+        if (wasBelowOrEqualLimit && isNowOverLimit) {
+            NotificationHelper.showLimitExceededNotification(
+                context = requireContext(),
+                monthlyTotal = newMonthlyTotal,
+                monthlyLimit = settings.monthlyLimit
+            )
+        }
     }
 
     override fun onDestroyView() {

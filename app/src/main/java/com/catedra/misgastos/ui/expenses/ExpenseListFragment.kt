@@ -18,6 +18,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.catedra.misgastos.ui.auth.LoginFragment
 import kotlinx.coroutines.launch
 import com.catedra.misgastos.data.repository.ExpenseRepository
+import com.catedra.misgastos.ui.settings.SettingsFragment
 
 class ExpenseListFragment: Fragment() {
 
@@ -92,6 +93,13 @@ class ExpenseListFragment: Fragment() {
 
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragmentContainer, LoginFragment())
+                .commit()
+        }
+
+        binding.buttonSettings.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, SettingsFragment())
+                .addToBackStack(null)
                 .commit()
         }
     }

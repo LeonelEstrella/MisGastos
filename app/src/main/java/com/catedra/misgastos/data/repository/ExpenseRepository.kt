@@ -65,4 +65,25 @@ class ExpenseRepository {
             .delete()
             .await()
     }
+
+    suspend fun getMonthlyTotal(): Double {
+        val expenses = getExpenses()
+
+        val calendar = java.util.Calendar.getInstance()
+        val currentMonth = calendar.get(java.util.Calendar.MONTH)
+        val currentYear = calendar.get(java.util.Calendar.YEAR)
+
+        return expenses
+            .filter { expense ->
+                val expenseCalendar = java.util.Calendar.getInstance().apply {
+                    timeInMillis = expense.date
+                }
+
+                val expenseMonth = expenseCalendar.get(java.util.Calendar.MONTH)
+                val expenseYear = expenseCalendar.get(java.util.Calendar.YEAR)
+
+                expenseMonth == currentMonth && expenseYear == currentYear
+            }
+            .sumOf { it.amount }
+    }
 }

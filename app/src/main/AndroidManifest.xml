@@ -12,6 +12,8 @@
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!--con esto hago que no sea obligatoria la camara-->
     <uses-feature
         android:name="android.hardware.camera"
