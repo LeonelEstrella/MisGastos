@@ -19,6 +19,7 @@ import com.catedra.misgastos.ui.auth.LoginFragment
 import kotlinx.coroutines.launch
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.ui.settings.SettingsFragment
+import com.google.android.material.chip.Chip
 
 class ExpenseListFragment: Fragment() {
 
@@ -30,6 +31,10 @@ class ExpenseListFragment: Fragment() {
     private val viewModel: ExpenseListViewModel by viewModels()
 
     private lateinit var adapter: ExpenseAdapter
+
+    private var allExpenses: List<Expense> = emptyList()
+    private var selectedCategory: String? = null
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -66,7 +71,9 @@ class ExpenseListFragment: Fragment() {
 
     private fun setupObservers(){
         viewModel.expenses.observe(viewLifecycleOwner) { expenses ->
-            adapter.submitList(expenses)
+            allExpenses = expenses
+            setupCategoryChips(expenses)
+            applyCategoryFilter()
         }
 
         viewModel.loading.observe(viewLifecycleOwner) { loading ->
@@ -154,5 +161,54 @@ class ExpenseListFragment: Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun setupCategoryChips(expenses: List<Expense>) {
+        binding.chipGroupCategories.removeAllViews()
+
+        val chipAll = Chip(requireContext()).apply {
+            text = "Todos"
+            isCheckable = true
+            isChecked = selectedCategory == null
+            setOnClickListener {
+                selectedCategory = null
+                applyCategoryFilter()
+            }
+        }
+
+        binding.chipGroupCategories.addView(chipAll)
+
+        val categories = expenses
+            .map { it.category }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+
+        categories.forEach { category ->
+            val chip = Chip(requireContext()).apply {
+                text = category
+                isCheckable = true
+                isChecked = selectedCategory == category
+                setOnClickListener {
+                    selectedCategory = category
+                    applyCategoryFilter()
+                }
+            }
+
+            binding.chipGroupCategories.addView(chip)
+        }
+    }
+
+    private fun applyCategoryFilter() {
+        val filteredExpenses = if (selectedCategory == null) {
+            allExpenses
+        } else {
+            allExpenses.filter { it.category == selectedCategory }
+        }
+
+        adapter.submitList(filteredExpenses)
+
+        val total = filteredExpenses.sumOf { it.amount }
+        binding.textMonthlyTotal.text = "Total: $${total}"
     }
 }

@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.catedra.misgastos.data.repository.SettingsRepository
 import com.catedra.misgastos.utils.NotificationHelper
+import android.widget.ArrayAdapter
 
 class ExpenseFormFragment : Fragment() {
 
@@ -40,6 +41,8 @@ class ExpenseFormFragment : Fragment() {
     private var selectedImageUri: Uri? = null
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
+
+    private val categories = listOf("Ropa", "Comida", "Transporte", "Salud", "Entretenimiento", "Otros")
 
     private val fusedLocationClient by lazy {
         LocationServices.getFusedLocationProviderClient(requireActivity())
@@ -80,6 +83,7 @@ class ExpenseFormFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        setupCategorySpinner()
         setupInitialState()
         setupListeners()
     }
@@ -109,7 +113,10 @@ class ExpenseFormFragment : Fragment() {
                 currentExpense = expense
 
                 binding.editAmount.setText(expense.amount.toString())
-                binding.editCategory.setText(expense.category)
+                val index = categories.indexOf(expense.category)
+                if (index >= 0) {
+                    binding.spinnerCategory.setSelection(index)
+                }
                 binding.editDescription.setText(expense.description)
 
                 selectedLatitude = expense.latitude
@@ -127,6 +134,18 @@ class ExpenseFormFragment : Fragment() {
                 showError("No se encontró el gasto")
             }
         }
+    }
+
+    private fun setupCategorySpinner() {
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            categories
+        )
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        binding.spinnerCategory.adapter = adapter
     }
 
     private fun setupListeners() {
@@ -223,14 +242,12 @@ class ExpenseFormFragment : Fragment() {
 
     private fun saveExpense() {
         val amountText = binding.editAmount.text.toString()
-        val category = binding.editCategory.text.toString().trim()
+        val category = binding.spinnerCategory.selectedItem.toString()
         val description = binding.editDescription.text.toString().trim()
-
-        if (amountText.isBlank() || category.isBlank() || description.isBlank()) {
-            showError("Completá todos los campos")
+        if (description.isBlank()) {
+            showError("Completá la descripción")
             return
         }
-
         val amount = amountText.replace(",", ".").toDoubleOrNull()
 
         if (amount == null || amount <= 0) {

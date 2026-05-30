@@ -21,17 +21,15 @@
             android:id="@+id/editAmount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="24dp"
             android:hint="Monto"
             android:inputType="numberDecimal" />
 
-        <EditText
-            android:id="@+id/editCategory"
+        <Spinner
+            android:id="@+id/spinnerCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Categoría"
-            android:inputType="textCapWords"
-            tools:text="Comida" />
+            android:layout_marginTop="16dp" />
 
         <EditText
             android:id="@+id/editDescription"
@@ -39,13 +37,14 @@
             android:layout_height="wrap_content"
             android:hint="Descripción"
             android:inputType="textCapSentences"
+            android:layout_marginTop="16dp"
             tools:text="Almuerzo" />
 
         <Button
             android:id="@+id/buttonSelectReceipt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="24dp"
             android:text="Agregar comprobante" />
 
         <FrameLayout
@@ -96,7 +95,7 @@
             android:id="@+id/buttonUseCurrentLocation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="24dp"
             android:text="Usar ubicación actual" />
 
         <TextView
@@ -111,7 +110,7 @@
             android:id="@+id/buttonSave"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="32dp"
             android:text="Guardar" />
 
         <Button
