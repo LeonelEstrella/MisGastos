@@ -29,6 +29,12 @@
         android:layout_height="wrap_content"
         android:text="Agregar gasto" />
 
+    <Button
+        android:id="@+id/buttonExportPdf"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Exportar PDF" />
+
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/chipGroupCategories"
         android:layout_width="match_parent"

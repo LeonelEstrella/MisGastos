@@ -20,6 +20,14 @@ import kotlinx.coroutines.launch
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.ui.settings.SettingsFragment
 import com.google.android.material.chip.Chip
+import android.graphics.Paint
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import java.io.ByteArrayOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class ExpenseListFragment: Fragment() {
 
@@ -34,6 +42,15 @@ class ExpenseListFragment: Fragment() {
 
     private var allExpenses: List<Expense> = emptyList()
     private var selectedCategory: String? = null
+
+    private var visibleExpenses: List<Expense> = emptyList()
+
+    private val createPdfLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+            if (uri != null) {
+                exportExpensesToPdf(uri)
+            }
+        }
 
 
     override fun onCreateView(
@@ -108,6 +125,19 @@ class ExpenseListFragment: Fragment() {
                 .replace(R.id.fragmentContainer, SettingsFragment())
                 .addToBackStack(null)
                 .commit()
+        }
+
+        binding.buttonExportPdf.setOnClickListener {
+            if (visibleExpenses.isEmpty()) {
+                Toast.makeText(
+                    requireContext(),
+                    "No hay gastos para exportar",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                val categoryText = selectedCategory ?: "todos"
+                createPdfLauncher.launch("reporte_gastos_$categoryText.pdf")
+            }
         }
     }
 
@@ -199,6 +229,10 @@ class ExpenseListFragment: Fragment() {
         }
     }
 
+    private fun formatAmount(amount: Double): String {
+        return "$ %.2f".format(amount)
+    }
+
     private fun applyCategoryFilter() {
         val filteredExpenses = if (selectedCategory == null) {
             allExpenses
@@ -206,9 +240,124 @@ class ExpenseListFragment: Fragment() {
             allExpenses.filter { it.category == selectedCategory }
         }
 
+        visibleExpenses = filteredExpenses
+
         adapter.submitList(filteredExpenses)
 
         val total = filteredExpenses.sumOf { it.amount }
-        binding.textMonthlyTotal.text = "Total: $${total}"
+        binding.textMonthlyTotal.text = "Total: ${formatAmount(total)}"
+    }
+
+    private fun createExpensesPdf(expenses: List<Expense>): ByteArray {
+        val pdfDocument = PdfDocument()
+
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 40
+        val lineHeight = 22
+
+        val titlePaint = Paint().apply {
+            textSize = 20f
+            isFakeBoldText = true
+        }
+
+        val subtitlePaint = Paint().apply {
+            textSize = 14f
+            isFakeBoldText = true
+        }
+
+        val  normalPaint = Paint().apply {
+            textSize = 12f
+        }
+
+        val boldPaint = Paint().apply {
+            textSize = 12f
+            isFakeBoldText = true
+        }
+
+        var pageNumber = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+        var page = pdfDocument.startPage(pageInfo)
+        var canvas = page.canvas
+        var y = margin
+
+        fun newPage() {
+            pdfDocument.finishPage(page)
+            pageNumber++
+            pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+            page = pdfDocument.startPage(pageInfo)
+            canvas = page.canvas
+            y = margin
+        }
+
+        fun drawLine(text: String, paint: Paint = normalPaint) {
+            if (y > pageHeight - margin) {
+                newPage()
+            }
+
+            canvas.drawText(text, margin.toFloat(), y.toFloat(), paint)
+            y += lineHeight
+        }
+
+        val total = expenses.sumOf { it.amount }
+        val generatedDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            .format(Date())
+
+        val filterText = selectedCategory ?: "Todos"
+
+        drawLine("Mis Gastos - Reporte", titlePaint)
+        y += 8
+
+        drawLine("Fecha de generación: $generatedDate")
+        drawLine("Filtro aplicado: $filterText")
+        drawLine("Cantidad de gastos: ${expenses.size}")
+        drawLine("Total exportado: ${formatAmount(total)}")
+        y += 16
+
+        drawLine("Detalle de gastos", subtitlePaint)
+        y += 8
+
+        expenses.forEachIndexed { index, expense ->
+            drawLine("${index + 1}. ${expense.category}", boldPaint)
+            drawLine("Fecha: ${formatDate(expense.date)}")
+            drawLine("Descripción: ${expense.description}")
+            drawLine("Monto: ${formatAmount(expense.amount)}")
+            y += 10
+        }
+
+        pdfDocument.finishPage(page)
+
+        val outputStream = ByteArrayOutputStream()
+        pdfDocument.writeTo(outputStream)
+        pdfDocument.close()
+
+        return  outputStream.toByteArray()
+    }
+
+    private fun formatDate(dateMillis: Long): String {
+        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        return formatter.format(Date(dateMillis))
+    }
+
+    private fun exportExpensesToPdf(uri: Uri) {
+        try {
+            val pdfBytes = createExpensesPdf(visibleExpenses)
+
+            requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(pdfBytes)
+            }
+
+            Toast.makeText(
+                requireContext(),
+                "PDF exportado correctamente",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e: Exception) {
+            Toast.makeText(
+                requireContext(),
+                e.message ?: "Error al exportar PDF",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 }
