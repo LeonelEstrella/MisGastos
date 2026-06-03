@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:background="#FDF7FF"
+    android:padding="24dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,28 +18,43 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Configuración"
-            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+            android:textColor="#1F1F1F"
+            android:textSize="32sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Umbral mensual"
+            android:textColor="#333333"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
         <EditText
             android:id="@+id/editMonthlyLimit"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:hint="Límite mensual"
+            android:hint="Ej: 100000"
             android:inputType="numberDecimal"
-            tools:text="200000" />
+            android:textColor="#1F1F1F"
+            android:textColorHint="#888888"
+            tools:text="100000" />
 
         <CheckBox
             android:id="@+id/checkNotificationsEnabled"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:buttonTint="#0B6B2B"
             android:text="Activar notificaciones por umbral"
-            android:checked="true" />
+            android:textColor="#1F1F1F" />
 
         <TextView
             android:id="@+id/textError"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:textColor="#B00020"
             android:visibility="gone"
             tools:text="Ingresá un límite válido" />
@@ -46,20 +64,34 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
             android:visibility="gone" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonSaveSettings"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Guardar configuración" />
+            android:layout_height="52dp"
+            android:layout_marginTop="28dp"
+            android:text="Guardar configuración"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            app:backgroundTint="#0B6B2B"
+            app:cornerRadius="24dp" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonLogout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="52dp"
             android:layout_marginTop="16dp"
-            android:text="Cerrar sesión" />
+            android:text="Cerrar sesión"
+            android:textAllCaps="false"
+            android:textColor="#D32F2F"
+            android:textStyle="bold"
+            app:backgroundTint="#22D32F2F"
+            app:cornerRadius="24dp"
+            app:strokeColor="#D32F2F"
+            app:strokeWidth="1dp" />
 
     </LinearLayout>
 
