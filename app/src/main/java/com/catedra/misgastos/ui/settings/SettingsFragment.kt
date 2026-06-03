@@ -13,6 +13,8 @@ import com.catedra.misgastos.databinding.FragmentSettingsBinding
 import kotlinx.coroutines.launch
 import com.google.android.material.snackbar.Snackbar
 import com.catedra.misgastos.R
+import com.catedra.misgastos.MainActivity
+import com.google.firebase.auth.FirebaseAuth
 
 class SettingsFragment : Fragment() {
 
@@ -40,6 +42,11 @@ class SettingsFragment : Fragment() {
     private fun setupListeners() {
         binding.buttonSaveSettings.setOnClickListener {
             saveSettings()
+        }
+
+        binding.buttonLogout.setOnClickListener {
+            FirebaseAuth.getInstance().signOut()
+            (requireActivity() as MainActivity).openLogin()
         }
     }
 

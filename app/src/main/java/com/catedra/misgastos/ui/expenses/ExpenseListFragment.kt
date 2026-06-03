@@ -14,10 +14,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.catedra.misgastos.R
 import com.catedra.misgastos.data.model.Expense
 import com.catedra.misgastos.databinding.FragmentExpenseListBinding
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import com.catedra.misgastos.data.repository.ExpenseRepository
-import com.catedra.misgastos.ui.settings.SettingsFragment
 import com.google.android.material.chip.Chip
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
@@ -28,6 +26,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.catedra.misgastos.MainActivity
+import com.catedra.misgastos.data.repository.SettingsRepository
+import java.nio.DoubleBuffer
 
 class ExpenseListFragment: Fragment() {
 
@@ -51,6 +51,11 @@ class ExpenseListFragment: Fragment() {
                 exportExpensesToPdf(uri)
             }
         }
+
+    private val settingsRepository = SettingsRepository()
+
+    private var monthlyLimit: Double = 0.0
+    private var notificationsEnabled: Boolean = true
 
 
     override fun onCreateView(
@@ -108,20 +113,9 @@ class ExpenseListFragment: Fragment() {
     }
 
     private fun setupListeners() {
-        binding.buttonAddExpense.setOnClickListener {
+
+        binding.fabAddExpense.setOnClickListener {
             navigateToForm()
-        }
-
-        binding.btnLogout.setOnClickListener {
-            FirebaseAuth.getInstance().signOut()
-            (requireActivity() as MainActivity).openLogin()
-        }
-
-        binding.buttonSettings.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, SettingsFragment())
-                .addToBackStack(null)
-                .commit()
         }
 
         binding.buttonExportPdf.setOnClickListener {
@@ -182,12 +176,27 @@ class ExpenseListFragment: Fragment() {
 
     override fun onResume() {
         super.onResume()
+        loadSettings()
         viewModel.loadExpenses()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun loadSettings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val settings = settingsRepository.getSettings()
+
+                monthlyLimit = settings.monthlyLimit
+                notificationsEnabled = settings.notificationsEnabled
+
+                val currentTotal = visibleExpenses.sumOf { it.amount }
+                updateThresholdWarning(currentTotal)
+            } catch (e: Exception) {}
+        }
     }
 
     private fun setupCategoryChips(expenses: List<Expense>) {
@@ -243,6 +252,25 @@ class ExpenseListFragment: Fragment() {
 
         val total = filteredExpenses.sumOf { it.amount }
         binding.textMonthlyTotal.text = "Total: ${formatAmount(total)}"
+
+        binding.textExpenseCount.text =
+            if (filteredExpenses.size == 1) {
+                "1 gasto registrado"
+            } else {
+                "${filteredExpenses.size} gastos registrados"
+            }
+
+        updateThresholdWarning(total)
+    }
+
+    private fun updateThresholdWarning(total : Double) {
+        val shoueldShowWarning = notificationsEnabled && monthlyLimit > 0 && total > monthlyLimit
+
+        binding.textThresholdWarning.isVisible = shoueldShowWarning
+
+        if (shoueldShowWarning) {
+            binding.textThresholdWarning.text = "Superaste tu umbral mensual de ${formatAmount(monthlyLimit)}"
+        }
     }
 
     private fun createExpensesPdf(expenses: List<Expense>): ByteArray {
