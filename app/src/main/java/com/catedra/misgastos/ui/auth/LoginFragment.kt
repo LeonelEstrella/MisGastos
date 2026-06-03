@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment
 import com.catedra.misgastos.R
 import com.catedra.misgastos.ui.expenses.ExpenseListFragment
 import com.google.firebase.auth.FirebaseAuth
+import com.catedra.misgastos.MainActivity
 
 class LoginFragment : Fragment() {
 
@@ -107,9 +108,7 @@ class LoginFragment : Fragment() {
 
             auth.signInWithEmailAndPassword(emailText, passwordText)
                 .addOnSuccessListener {
-                    parentFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainer, ExpenseListFragment())
-                        .commit()
+                    (requireActivity() as MainActivity).openMain()
                 }
                 .addOnFailureListener {
                     loginButton.isEnabled = true

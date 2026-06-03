@@ -1,11 +1,9 @@
 package com.catedra.misgastos.ui.settings
 
 import android.os.Bundle
-import android.os.Message
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -13,6 +11,8 @@ import com.catedra.misgastos.data.model.UserSettings
 import com.catedra.misgastos.data.repository.SettingsRepository
 import com.catedra.misgastos.databinding.FragmentSettingsBinding
 import kotlinx.coroutines.launch
+import com.google.android.material.snackbar.Snackbar
+import com.catedra.misgastos.R
 
 class SettingsFragment : Fragment() {
 
@@ -41,10 +41,6 @@ class SettingsFragment : Fragment() {
         binding.buttonSaveSettings.setOnClickListener {
             saveSettings()
         }
-
-        binding.buttonBack.setOnClickListener {
-            parentFragmentManager.popBackStack()
-        }
     }
 
     private fun loadSettings() {
@@ -72,11 +68,11 @@ class SettingsFragment : Fragment() {
         val monthlyLimit = limitText.toDoubleOrNull()
 
         if (monthlyLimit == null || monthlyLimit <= 0) {
-                showError("Ingresá un límite mensual válido")
-                return
+            showError("Ingresá un límite mensual válido")
+            return
         }
 
-        val  settings = UserSettings(
+        val settings = UserSettings(
             monthlyLimit = monthlyLimit,
             notificationsEnabled = binding.checkNotificationsEnabled.isChecked
         )
@@ -89,13 +85,14 @@ class SettingsFragment : Fragment() {
 
                 repository.saveSettings(settings)
 
-                Toast.makeText(
-                    requireContext(),
+                Snackbar.make(
+                    binding.root,
                     "Configuración guardada",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    Snackbar.LENGTH_SHORT
+                )
+                    .setAnchorView(requireActivity().findViewById(R.id.bottomNavigation))
+                    .show()
 
-                parentFragmentManager.popBackStack()
             } catch (e: Exception) {
                 showError(e.message ?: "Error al guardar la configuración")
             } finally {

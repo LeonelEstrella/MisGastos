@@ -15,7 +15,6 @@ import com.catedra.misgastos.R
 import com.catedra.misgastos.data.model.Expense
 import com.catedra.misgastos.databinding.FragmentExpenseListBinding
 import com.google.firebase.auth.FirebaseAuth
-import com.catedra.misgastos.ui.auth.LoginFragment
 import kotlinx.coroutines.launch
 import com.catedra.misgastos.data.repository.ExpenseRepository
 import com.catedra.misgastos.ui.settings.SettingsFragment
@@ -28,6 +27,7 @@ import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.catedra.misgastos.MainActivity
 
 class ExpenseListFragment: Fragment() {
 
@@ -114,10 +114,7 @@ class ExpenseListFragment: Fragment() {
 
         binding.btnLogout.setOnClickListener {
             FirebaseAuth.getInstance().signOut()
-
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, LoginFragment())
-                .commit()
+            (requireActivity() as MainActivity).openLogin()
         }
 
         binding.buttonSettings.setOnClickListener {
