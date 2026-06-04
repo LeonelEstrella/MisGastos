@@ -1,148 +1,524 @@
 package com.catedra.misgastos.ui.history
 
-import android.graphics.Typeface
+import android.app.DatePickerDialog
+import android.graphics.Paint
+import android.graphics.pdf.PdfDocument
+import android.net.Uri
 import android.os.Bundle
-import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.catedra.misgastos.data.model.Expense
 import com.catedra.misgastos.data.repository.ExpenseRepository
+import com.catedra.misgastos.databinding.FragmentExpenseHistoryBinding
+import com.google.android.material.chip.Chip
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
 class ExpenseHistoryFragment : Fragment() {
 
+    private var _binding: FragmentExpenseHistoryBinding? = null
+    private val binding get() = _binding!!
+
     private val repository = ExpenseRepository()
 
-    private lateinit var container: LinearLayout
-    private lateinit var progressBar: ProgressBar
-    private lateinit var textError: TextView
+    private var allExpenses: List<Expense> = emptyList()
+    private var visibleExpenses: List<Expense> = emptyList()
+
+    private var selectedCategory: String? = null
+    private var startDateMillis: Long? = null
+    private var endDateMillis: Long? = null
+
+    private val displayDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    private val monthFormat = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
+
+    private val createPdfLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+            if (uri != null) {
+                exportHistoryToPdf(uri)
+            }
+        }
 
     override fun onCreateView(
-        inflater: android.view.LayoutInflater,
+        inflater: LayoutInflater,
         parent: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val scrollView = ScrollView(requireContext()).apply {
-            setBackgroundColor(0xFFFDF7FF.toInt())
-        }
-
-        container = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
-        }
-
-        val title = TextView(requireContext()).apply {
-            text = "Histórico de gastos"
-            textSize = 28f
-            setTextColor(0xFF1F1F1F.toInt())
-            setTypeface(null, Typeface.BOLD)
-        }
-
-        val subtitle = TextView(requireContext()).apply {
-            text = "Resumen mensual de tus gastos"
-            textSize = 16f
-            setTextColor(0xFF666666.toInt())
-            setPadding(0, 8, 0, 24)
-        }
-
-        progressBar = ProgressBar(requireContext()).apply {
-            isVisible = false
-        }
-
-        textError = TextView(requireContext()).apply {
-            setTextColor(0xFFB00020.toInt())
-            isVisible = false
-        }
-
-        container.addView(title)
-        container.addView(subtitle)
-        container.addView(progressBar)
-        container.addView(textError)
-
-        scrollView.addView(container)
-
-        return scrollView
+        _binding = FragmentExpenseHistoryBinding.inflate(inflater, parent, false)
+        return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
+        setupListeners()
         loadHistory()
+    }
+
+    private fun setupListeners() {
+        binding.buttonStartDate.setOnClickListener {
+            showDatePicker { selectedDate ->
+                startDateMillis = startOfDay(selectedDate)
+                binding.buttonStartDate.text = "Desde ${displayDateFormat.format(Date(startDateMillis!!))}"
+                applyFilters()
+            }
+        }
+
+        binding.buttonEndDate.setOnClickListener {
+            showDatePicker { selectedDate ->
+                endDateMillis = endOfDay(selectedDate)
+                binding.buttonEndDate.text = "Hasta ${displayDateFormat.format(Date(endDateMillis!!))}"
+                applyFilters()
+            }
+        }
+
+        binding.buttonClearFilters.setOnClickListener {
+            selectedCategory = null
+            startDateMillis = null
+            endDateMillis = null
+
+            binding.buttonStartDate.text = "Desde"
+            binding.buttonEndDate.text = "Hasta"
+
+            setupCategoryChips(allExpenses)
+            applyFilters()
+        }
+
+        binding.buttonExportHistoryPdf.setOnClickListener {
+            if (visibleExpenses.isEmpty()) {
+                Toast.makeText(
+                    requireContext(),
+                    "No hay gastos para exportar",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                createPdfLauncher.launch("historico_gastos.pdf")
+            }
+        }
     }
 
     private fun loadHistory() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                progressBar.isVisible = true
-                textError.isVisible = false
+                binding.progressBar.isVisible = true
+                binding.textError.isVisible = false
 
-                val expenses = repository.getExpenses()
-                showHistory(expenses)
+                allExpenses = repository.getExpenses()
+                setupCategoryChips(allExpenses)
+                applyFilters()
 
             } catch (e: Exception) {
-                textError.text = e.message ?: "Error al cargar histórico"
-                textError.isVisible = true
+                binding.textError.text = e.message ?: "Error al cargar histórico"
+                binding.textError.isVisible = true
             } finally {
-                progressBar.isVisible = false
+                binding.progressBar.isVisible = false
             }
         }
     }
 
-    private fun showHistory(expenses: List<Expense>) {
-        val groupedExpenses = expenses
-            .groupBy { expense -> monthKey(expense.date) }
-            .toSortedMap(compareByDescending { it })
+    private fun setupCategoryChips(expenses: List<Expense>) {
+        binding.chipGroupHistoryCategories.removeAllViews()
 
-        if (groupedExpenses.isEmpty()) {
-            val emptyText = TextView(requireContext()).apply {
-                text = "Todavía no hay gastos registrados"
-                textSize = 16f
-                setTextColor(0xFF666666.toInt())
-                gravity = Gravity.CENTER
-                setPadding(0, 48, 0, 0)
+        val chipAll = Chip(requireContext()).apply {
+            text = "Todas"
+            isCheckable = true
+            isChecked = selectedCategory == null
+
+            setOnClickListener {
+                selectedCategory = null
+                applyFilters()
+            }
+        }
+
+        binding.chipGroupHistoryCategories.addView(chipAll)
+
+        val categories = expenses
+            .map { it.category }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+
+        categories.forEach { category ->
+            val chip = Chip(requireContext()).apply {
+                text = category
+                isCheckable = true
+                isChecked = selectedCategory == category
+
+                setOnClickListener {
+                    selectedCategory = category
+                    applyFilters()
+                }
             }
 
-            container.addView(emptyText)
+            binding.chipGroupHistoryCategories.addView(chip)
+        }
+    }
+
+    private fun applyFilters() {
+        val filtered = allExpenses.filter { expense ->
+            val matchesCategory =
+                selectedCategory == null || expense.category == selectedCategory
+
+            val matchesStartDate =
+                startDateMillis == null || expense.date >= startDateMillis!!
+
+            val matchesEndDate =
+                endDateMillis == null || expense.date <= endDateMillis!!
+
+            matchesCategory && matchesStartDate && matchesEndDate
+        }
+
+        visibleExpenses = filtered.sortedByDescending { it.date }
+
+        updateHeader()
+        showCategorySummary()
+        showMonthlySummary()
+    }
+
+    private fun updateHeader() {
+        val total = visibleExpenses.sumOf { it.amount }
+
+        binding.textHistoryTotal.text = "Total histórico: ${formatAmount(total)}"
+
+        binding.textHistoryCount.text =
+            if (visibleExpenses.size == 1) {
+                "1 gasto encontrado"
+            } else {
+                "${visibleExpenses.size} gastos encontrados"
+            }
+    }
+
+    private fun showCategorySummary() {
+        binding.containerCategorySummary.removeAllViews()
+
+        if (visibleExpenses.isEmpty()) {
+            addEmptyText(binding.containerCategorySummary, "No hay gastos para los filtros seleccionados")
             return
         }
 
-        groupedExpenses.forEach { (month, monthExpenses) ->
-            val total = monthExpenses.sumOf { it.amount }
+        val groupedByCategory = visibleExpenses
+            .groupBy { it.category }
+            .toList()
+            .sortedByDescending { (_, expenses) -> expenses.sumOf { it.amount } }
 
-            val item = TextView(requireContext()).apply {
-                text = "$month\nTotal: ${formatAmount(total)}\nCantidad de gastos: ${monthExpenses.size}"
-                textSize = 18f
-                setTextColor(0xFF1F1F1F.toInt())
-                setPadding(24, 24, 24, 24)
-                setBackgroundColor(0xFFFFFFFF.toInt())
-            }
+        groupedByCategory.forEach { (category, expenses) ->
+            val total = expenses.sumOf { it.amount }
+            val count = expenses.size
 
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, 16)
-            }
+            val text = "$category\n${formatAmount(total)} · $count gasto${if (count == 1) "" else "s"}"
 
-            container.addView(item, params)
+            addSummaryCard(text)
         }
     }
 
+    private fun showMonthlySummary() {
+        binding.containerMonthlySummary.removeAllViews()
+
+        if (visibleExpenses.isEmpty()) {
+            addEmptyText(binding.containerMonthlySummary, "Sin movimientos para mostrar")
+            return
+        }
+
+        val groupedByMonth = visibleExpenses
+            .groupBy { monthKey(it.date) }
+            .toList()
+            .sortedByDescending { (_, expenses) -> expenses.maxOf { it.date } }
+
+        groupedByMonth.forEach { (month, expenses) ->
+            val total = expenses.sumOf { it.amount }
+            val count = expenses.size
+
+            val text = "$month\nTotal: ${formatAmount(total)}\nCantidad de gastos: $count"
+
+            addMonthlyCard(text)
+        }
+    }
+
+    private fun addSummaryCard(text: String) {
+        val parts = text.split("\n")
+
+        val titleText = parts.getOrNull(0).orEmpty()
+        val detailText = parts.getOrNull(1).orEmpty()
+
+        val card = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24, 20, 24, 20)
+            setBackgroundResource(com.catedra.misgastos.R.drawable.bg_history_card)
+        }
+
+        val title = TextView(requireContext()).apply {
+            this.text = titleText
+            textSize = 17f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFF1F1F1F.toInt())
+        }
+
+        val detail = TextView(requireContext()).apply {
+            this.text = detailText
+            textSize = 15f
+            setTextColor(0xFF0B6B2B.toInt())
+            setPadding(0, 6, 0, 0)
+        }
+
+        card.addView(title)
+        card.addView(detail)
+
+        val params = android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(0, 0, 0, 12)
+        }
+
+        binding.containerCategorySummary.addView(card, params)
+    }
+
+    private fun addMonthlyCard(text: String) {
+        val parts = text.split("\n")
+
+        val monthText = parts.getOrNull(0).orEmpty()
+        val totalText = parts.getOrNull(1).orEmpty()
+        val countText = parts.getOrNull(2).orEmpty()
+
+        val card = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24, 20, 24, 20)
+            setBackgroundResource(com.catedra.misgastos.R.drawable.bg_history_card)
+        }
+
+        val month = TextView(requireContext()).apply {
+            this.text = monthText
+            textSize = 17f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFF1F1F1F.toInt())
+        }
+
+        val total = TextView(requireContext()).apply {
+            this.text = totalText
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFF0B6B2B.toInt())
+            setPadding(0, 8, 0, 0)
+        }
+
+        val count = TextView(requireContext()).apply {
+            this.text = countText
+            textSize = 14f
+            setTextColor(0xFF666666.toInt())
+            setPadding(0, 4, 0, 0)
+        }
+
+        card.addView(month)
+        card.addView(total)
+        card.addView(count)
+
+        val params = android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(0, 0, 0, 12)
+        }
+
+        binding.containerMonthlySummary.addView(card, params)
+    }
+
+    private fun addEmptyText(
+        container: android.widget.LinearLayout,
+        message: String
+    ) {
+        val emptyText = TextView(requireContext()).apply {
+            text = message
+            textSize = 15f
+            setTextColor(0xFF666666.toInt())
+            setPadding(24, 20, 24, 20)
+            setBackgroundResource(com.catedra.misgastos.R.drawable.bg_history_card)
+        }
+
+        val params = android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            setMargins(0, 0, 0, 12)
+        }
+
+        container.addView(emptyText, params)
+    }
+
+    private fun showDatePicker(onDateSelected: (Long) -> Unit) {
+        val calendar = Calendar.getInstance()
+
+        val dialog = DatePickerDialog(
+            requireContext(),
+            { _, year, month, dayOfMonth ->
+                val selectedCalendar = Calendar.getInstance().apply {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                }
+
+                onDateSelected(selectedCalendar.timeInMillis)
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
+
+        dialog.show()
+    }
+
+    private fun startOfDay(dateMillis: Long): Long {
+        return Calendar.getInstance().apply {
+            timeInMillis = dateMillis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
+    private fun endOfDay(dateMillis: Long): Long {
+        return Calendar.getInstance().apply {
+            timeInMillis = dateMillis
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.timeInMillis
+    }
+
     private fun monthKey(dateMillis: Long): String {
-        val formatter = SimpleDateFormat("MMMM yyyy", Locale.getDefault())
-        return formatter.format(Date(dateMillis)).replaceFirstChar { it.uppercase() }
+        return monthFormat
+            .format(Date(dateMillis))
+            .replaceFirstChar { it.uppercase() }
     }
 
     private fun formatAmount(amount: Double): String {
-        return "$%.2f".format(amount)
+        return "$ %.2f".format(amount)
+    }
+
+    private fun formatDate(dateMillis: Long): String {
+        return displayDateFormat.format(Date(dateMillis))
+    }
+
+    private fun exportHistoryToPdf(uri: Uri) {
+        try {
+            val pdfBytes = createHistoryPdf()
+
+            requireContext().contentResolver.openOutputStream(uri)?.use { outputStream ->
+                outputStream.write(pdfBytes)
+            }
+
+            Toast.makeText(
+                requireContext(),
+                "PDF exportado correctamente",
+                Toast.LENGTH_LONG
+            ).show()
+
+        } catch (e: Exception) {
+            Toast.makeText(
+                requireContext(),
+                e.message ?: "Error al exportar PDF",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun createHistoryPdf(): ByteArray {
+        val pdfDocument = PdfDocument()
+
+        val pageWidth = 595
+        val pageHeight = 842
+        val margin = 40
+        val lineHeight = 22
+
+        val titlePaint = Paint().apply {
+            textSize = 20f
+            isFakeBoldText = true
+        }
+
+        val subtitlePaint = Paint().apply {
+            textSize = 14f
+            isFakeBoldText = true
+        }
+
+        val normalPaint = Paint().apply {
+            textSize = 12f
+        }
+
+        val boldPaint = Paint().apply {
+            textSize = 12f
+            isFakeBoldText = true
+        }
+
+        var pageNumber = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+        var page = pdfDocument.startPage(pageInfo)
+        var canvas = page.canvas
+        var y = margin
+
+        fun newPage() {
+            pdfDocument.finishPage(page)
+            pageNumber++
+            pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+            page = pdfDocument.startPage(pageInfo)
+            canvas = page.canvas
+            y = margin
+        }
+
+        fun drawLine(text: String, paint: Paint = normalPaint) {
+            if (y > pageHeight - margin) {
+                newPage()
+            }
+
+            canvas.drawText(text, margin.toFloat(), y.toFloat(), paint)
+            y += lineHeight
+        }
+
+        val total = visibleExpenses.sumOf { it.amount }
+        val generatedDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+            .format(Date())
+
+        drawLine("Mis Gastos - Histórico", titlePaint)
+        y += 8
+
+        drawLine("Fecha de generación: $generatedDate")
+        drawLine("Categoría: ${selectedCategory ?: "Todas"}")
+        drawLine("Desde: ${startDateMillis?.let { formatDate(it) } ?: "Sin filtro"}")
+        drawLine("Hasta: ${endDateMillis?.let { formatDate(it) } ?: "Sin filtro"}")
+        drawLine("Cantidad de gastos: ${visibleExpenses.size}")
+        drawLine("Total exportado: ${formatAmount(total)}")
+        y += 16
+
+        drawLine("Detalle de gastos", subtitlePaint)
+        y += 8
+
+        visibleExpenses.forEachIndexed { index, expense ->
+            drawLine("${index + 1}. ${expense.category}", boldPaint)
+            drawLine("Fecha: ${formatDate(expense.date)}")
+            drawLine("Descripción: ${expense.description}")
+            drawLine("Monto: ${formatAmount(expense.amount)}")
+            y += 10
+        }
+
+        pdfDocument.finishPage(page)
+
+        val outputStream = ByteArrayOutputStream()
+        pdfDocument.writeTo(outputStream)
+        pdfDocument.close()
+
+        return outputStream.toByteArray()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }
