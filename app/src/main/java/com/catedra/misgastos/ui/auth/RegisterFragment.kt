@@ -2,20 +2,21 @@ package com.catedra.misgastos.ui.auth
 
 import android.os.Bundle
 import android.text.Editable
-import android.text.InputType
 import android.text.TextWatcher
 import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import com.catedra.misgastos.R
-import com.catedra.misgastos.ui.expenses.ExpenseListFragment
+import com.catedra.misgastos.MainActivity
+import com.catedra.misgastos.databinding.FragmentRegisterBinding
 import com.google.firebase.auth.FirebaseAuth
 
 class RegisterFragment : Fragment() {
+
+    private var _binding: FragmentRegisterBinding? = null
+    private val binding get() = _binding!!
 
     private val auth = FirebaseAuth.getInstance()
 
@@ -24,45 +25,27 @@ class RegisterFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val layout = LinearLayout(requireContext())
-        layout.orientation = LinearLayout.VERTICAL
-        layout.setPadding(48, 48, 48, 48)
+        _binding = FragmentRegisterBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        val email = EditText(requireContext())
-        email.hint = "Email"
-        email.inputType = InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        setupInitialState()
+        setupListeners()
+    }
 
-        val password = EditText(requireContext())
-        password.hint = "Contraseña"
-        password.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+    private fun setupInitialState() {
+        binding.buttonRegister.isEnabled = false
+    }
 
-        val errorText = TextView(requireContext())
-        errorText.setTextColor(0xFFB00020.toInt())
-        errorText.textSize = 14f
-        errorText.isVisible = false
-
-        val registerButton = Button(requireContext())
-        registerButton.text = "Crear cuenta"
-        registerButton.isEnabled = false
-
-        val backButton = Button(requireContext())
-        backButton.text = "Volver al login"
-
-        layout.addView(email)
-        layout.addView(password)
-        layout.addView(errorText)
-        layout.addView(registerButton)
-        layout.addView(backButton)
-
+    private fun setupListeners() {
         val textWatcher = object : TextWatcher {
             override fun beforeTextChanged(
                 text: CharSequence?,
                 start: Int,
                 count: Int,
                 after: Int
-            ) {
-                
-            }
+            ) {}
 
             override fun onTextChanged(
                 text: CharSequence?,
@@ -70,68 +53,75 @@ class RegisterFragment : Fragment() {
                 before: Int,
                 count: Int
             ) {
-                val emailText = email.text.toString().trim()
-                val passwordText = password.text.toString().trim()
+                updateRegisterButtonState()
 
-                registerButton.isEnabled = emailText.isNotEmpty() && passwordText.isNotEmpty()
-
-                if (errorText.isVisible) {
-                    errorText.isVisible = false
+                if (binding.textError.isVisible) {
+                    binding.textError.isVisible = false
                 }
             }
 
-            override fun afterTextChanged(text: Editable?) {
-                
-            }
+            override fun afterTextChanged(text: Editable?) {}
         }
 
-        email.addTextChangedListener(textWatcher)
-        password.addTextChangedListener(textWatcher)
+        binding.editEmail.addTextChangedListener(textWatcher)
+        binding.editPassword.addTextChangedListener(textWatcher)
 
-        registerButton.setOnClickListener {
-            val emailText = email.text.toString().trim()
-            val passwordText = password.text.toString().trim()
-
-            if (!Patterns.EMAIL_ADDRESS.matcher(emailText).matches()) {
-                showError(errorText, "Ingresá un email válido")
-                return@setOnClickListener
-            }
-
-            if (passwordText.length < 6) {
-                showError(errorText, "La contraseña debe tener al menos 6 caracteres")
-                return@setOnClickListener
-            }
-
-            registerButton.isEnabled = false
-            backButton.isEnabled = false
-
-            auth.createUserWithEmailAndPassword(emailText, passwordText)
-                .addOnSuccessListener {
-                    parentFragmentManager.beginTransaction()
-                        .replace(R.id.fragmentContainer, ExpenseListFragment())
-                        .commit()
-                }
-                .addOnFailureListener { exception ->
-                    registerButton.isEnabled = true
-                    backButton.isEnabled = true
-
-                    showError(
-                        errorText,
-                        getRegisterErrorMessage(exception)
-                    )
-                }
+        binding.buttonRegister.setOnClickListener {
+            register()
         }
 
-        backButton.setOnClickListener {
+        binding.buttonBack.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
-
-        return layout
     }
 
-    private fun showError(errorText: TextView, message: String) {
-        errorText.text = message
-        errorText.isVisible = true
+    private fun updateRegisterButtonState() {
+        val email = binding.editEmail.text.toString().trim()
+        val password = binding.editPassword.text.toString().trim()
+
+        binding.buttonRegister.isEnabled = email.isNotEmpty() && password.isNotEmpty()
+    }
+
+    private fun register() {
+        val email = binding.editEmail.text.toString().trim()
+        val password = binding.editPassword.text.toString().trim()
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            showError("Ingresá un email válido")
+            return
+        }
+
+        if (password.length < 6) {
+            showError("La contraseña debe tener al menos 6 caracteres")
+            return
+        }
+
+        setLoading(true)
+
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnSuccessListener {
+                setLoading(false)
+                (requireActivity() as MainActivity).openMain()
+            }
+            .addOnFailureListener { exception ->
+                setLoading(false)
+                showError(getRegisterErrorMessage(exception))
+            }
+    }
+
+    private fun setLoading(isLoading: Boolean) {
+        binding.progressBar.isVisible = isLoading
+        binding.buttonRegister.isEnabled = !isLoading
+        binding.buttonBack.isEnabled = !isLoading
+
+        if (!isLoading) {
+            updateRegisterButtonState()
+        }
+    }
+
+    private fun showError(message: String) {
+        binding.textError.text = message
+        binding.textError.isVisible = true
     }
 
     private fun getRegisterErrorMessage(exception: Exception): String {
@@ -144,11 +134,16 @@ class RegisterFragment : Fragment() {
             message.contains("badly formatted", ignoreCase = true) ->
                 "Ingresá un email válido"
 
-            message.contains("password is invalid", ignoreCase = true) ->
+            message.contains("password", ignoreCase = true) ->
                 "La contraseña no cumple los requisitos"
 
             else ->
                 "No se pudo crear la cuenta. Intentá nuevamente"
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

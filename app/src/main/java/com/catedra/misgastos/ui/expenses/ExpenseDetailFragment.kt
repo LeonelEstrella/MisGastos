@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.catedra.misgastos.MainActivity
 
 class ExpenseDetailFragment : Fragment() {
 
@@ -50,10 +51,6 @@ class ExpenseDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         loadExpense()
 
-        binding.buttonBack.setOnClickListener {
-            parentFragmentManager.popBackStack()
-        }
-
         binding.buttonDelete.setOnClickListener {
             confirmDeleteExpense()
         }
@@ -62,6 +59,10 @@ class ExpenseDetailFragment : Fragment() {
             expenseId?.let { id ->
                 navigateToEdit(id)
             }
+        }
+
+        binding.buttonBack.setOnClickListener {
+            parentFragmentManager.popBackStack()
         }
     }
 

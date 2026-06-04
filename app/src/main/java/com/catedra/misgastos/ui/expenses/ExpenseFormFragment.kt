@@ -54,6 +54,7 @@ class ExpenseFormFragment : Fragment() {
                 getCurrentLocation()
             } else {
                 showError("Necesitás permitir ubicación para guardar la ubicación actual")
+                setLocationLoading(false)
             }
         }
 
@@ -182,6 +183,8 @@ class ExpenseFormFragment : Fragment() {
 
     private fun getCurrentLocation() {
 
+        setLocationLoading(true)
+
         val locationRequest =
             com.google.android.gms.location.LocationRequest.Builder(
                 com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
@@ -203,9 +206,11 @@ class ExpenseFormFragment : Fragment() {
                         updateLocationText()
 
                         fusedLocationClient.removeLocationUpdates(this)
+                        setLocationLoading(false)
 
                     } else {
                         showError("No se pudo obtener ubicación")
+                        setLocationLoading(false)
                     }
                 }
             }
@@ -221,6 +226,7 @@ class ExpenseFormFragment : Fragment() {
         } catch (e: SecurityException) {
 
             showError("No hay permiso de ubicación")
+            setLocationLoading(false)
 
         }
     }
@@ -373,6 +379,19 @@ class ExpenseFormFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun setLocationLoading(isLoading: Boolean) {
+        binding.progressLocation.isVisible = isLoading
+        binding.buttonUseCurrentLocation.isEnabled = !isLoading
+
+        binding.buttonUseCurrentLocation.text =
+            if (isLoading) {
+                "Obteniendo ubicación..."
+            }
+            else {
+                "Usar ubicación actual"
+            }
     }
 
     companion object {

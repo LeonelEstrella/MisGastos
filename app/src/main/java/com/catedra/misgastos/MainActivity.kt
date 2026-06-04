@@ -1,19 +1,24 @@
 package com.catedra.misgastos
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.isVisible
 import com.catedra.misgastos.databinding.ActivityMainBinding
 import com.catedra.misgastos.ui.auth.LoginFragment
 import com.catedra.misgastos.ui.expenses.ExpenseListFragment
-import com.google.firebase.auth.FirebaseAuth
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import com.catedra.misgastos.ui.history.ExpenseHistoryFragment
+import com.catedra.misgastos.ui.settings.SettingsFragment
 import com.catedra.misgastos.utils.NotificationHelper
-import android.Manifest
-import android.os.Build
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : AppCompatActivity() {
 
@@ -21,10 +26,8 @@ class MainActivity : AppCompatActivity() {
     private val auth = FirebaseAuth.getInstance()
 
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            // Por ahora no hacemos nada especial.
-            // Si isGranted es true, podremos mostrar notificaciones.
-            // Si es false, la app sigue funcionando sin notificaciones.
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            // La app sigue funcionando aunque el usuario rechace el permiso.
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,13 +36,27 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupSystemBars()
+
         NotificationHelper.createNotificationChannel(this)
         requestNotificationPermissionIfNeeded()
 
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        setupBottomNavigation()
 
-        val insetsController = androidx.core.view.WindowInsetsControllerCompat(
+        if (savedInstanceState == null) {
+            if (auth.currentUser == null) {
+                openLogin()
+            } else {
+                openMain()
+            }
+        }
+    }
+
+    private fun setupSystemBars() {
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+
+        val insetsController = WindowInsetsControllerCompat(
             window,
             window.decorView
         )
@@ -54,23 +71,68 @@ class MainActivity : AppCompatActivity() {
                 systemBars.left,
                 systemBars.top,
                 systemBars.right,
-                systemBars.bottom
+                0
             )
 
             insets
         }
+    }
 
-        if (savedInstanceState == null) {
-            val fragment = if (auth.currentUser == null) {
-                LoginFragment()
-            } else {
-                ExpenseListFragment()
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_expenses -> {
+                    openRootFragment(ExpenseListFragment())
+                    true
+                }
+
+                R.id.nav_history -> {
+                    openRootFragment(ExpenseHistoryFragment())
+                    true
+                }
+
+                R.id.nav_settings -> {
+                    openRootFragment(SettingsFragment())
+                    true
+                }
+
+                else -> false
             }
-
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.fragmentContainer, fragment)
-                .commit()
         }
+    }
+
+    fun openMain() {
+        binding.bottomNavigation.isVisible = true
+
+        if (binding.bottomNavigation.selectedItemId != R.id.nav_expenses) {
+            binding.bottomNavigation.selectedItemId = R.id.nav_expenses
+        } else {
+            openRootFragment(ExpenseListFragment())
+        }
+    }
+
+    fun openLogin() {
+        binding.bottomNavigation.isVisible = false
+
+        supportFragmentManager.popBackStack(
+            null,
+            androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE
+        )
+
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, LoginFragment())
+            .commit()
+    }
+
+    private fun openRootFragment(fragment: androidx.fragment.app.Fragment) {
+        supportFragmentManager.popBackStack(
+            null,
+            androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE
+        )
+
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, fragment)
+            .commit()
     }
 
     private fun requestNotificationPermissionIfNeeded() {
