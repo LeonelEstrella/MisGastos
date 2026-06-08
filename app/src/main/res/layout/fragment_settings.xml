@@ -17,7 +17,7 @@
             android:id="@+id/textSettingsTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Configuración"
+            android:text="@string/settings"
             android:textColor="#1F1F1F"
             android:textSize="32sp"
             android:textStyle="bold" />
@@ -26,7 +26,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Umbral mensual"
+            android:text="@string/monthly_threshold"
             android:textColor="#333333"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:buttonTint="#0B6B2B"
-            android:text="Activar notificaciones por umbral"
+            android:text="@string/activate_notifications"
             android:textColor="#1F1F1F" />
 
         <TextView
@@ -57,7 +57,7 @@
             android:layout_marginTop="8dp"
             android:textColor="#B00020"
             android:visibility="gone"
-            tools:text="Ingresá un límite válido" />
+            tools:text="@string/limit_error" />
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -68,12 +68,27 @@
             android:indeterminateTint="#0B6B2B"
             android:visibility="gone" />
 
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonLanguage"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="24dp"
+            android:text="@string/language"
+            android:textAllCaps="false"
+            android:textColor="#0B6B2B"
+            android:textStyle="bold"
+            app:backgroundTint="#FFFFFF"
+            app:cornerRadius="24dp"
+            app:strokeColor="#0B6B2B"
+            app:strokeWidth="1dp" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonSaveSettings"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="28dp"
-            android:text="Guardar configuración"
+            android:text="@string/save_settings"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textStyle="bold"
@@ -85,7 +100,7 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="16dp"
-            android:text="Cerrar sesión"
+            android:text="@string/logout"
             android:textAllCaps="false"
             android:textColor="#D32F2F"
             android:textStyle="bold"

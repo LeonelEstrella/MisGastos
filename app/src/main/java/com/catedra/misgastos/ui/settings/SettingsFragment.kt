@@ -15,6 +15,8 @@ import com.google.android.material.snackbar.Snackbar
 import com.catedra.misgastos.R
 import com.catedra.misgastos.MainActivity
 import com.google.firebase.auth.FirebaseAuth
+import androidx.appcompat.app.AlertDialog
+import com.catedra.misgastos.utils.LocaleManager
 
 class SettingsFragment : Fragment() {
 
@@ -40,6 +42,10 @@ class SettingsFragment : Fragment() {
     }
 
     private fun setupListeners() {
+        binding.buttonLanguage.setOnClickListener {
+            showLanguageDialog()
+        }
+
         binding.buttonSaveSettings.setOnClickListener {
             saveSettings()
         }
@@ -75,7 +81,7 @@ class SettingsFragment : Fragment() {
         val monthlyLimit = limitText.toDoubleOrNull()
 
         if (monthlyLimit == null || monthlyLimit <= 0) {
-            showError("Ingresá un límite mensual válido")
+            showError(getString(R.string.limit_error))
             return
         }
 
@@ -117,5 +123,29 @@ class SettingsFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun showLanguageDialog() {
+        val languages = arrayOf(
+            "Español",
+            "English"
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.language))
+            .setItems(languages) { _, which ->
+
+                val languageCode =
+                    if (which == 0) "es"
+                    else "en"
+
+                LocaleManager.saveLanguage(
+                    requireContext(),
+                    languageCode
+                )
+
+                requireActivity().recreate()
+            }
+            .show()
     }
 }

@@ -1,3 +1,86 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
     <string name="app_name">MisGastos</string>
+
+    <string name="app_main">Mis Gastos</string>
+
+    <string name="app_description">Organizá tus gastos de forma simple</string>
+
+    <string name="language">Idioma</string>
+
+    <string name="email">Correo electronico</string>
+
+    <string name="edit_email">ejemplo@email.com</string>
+
+    <string name="edit_password">ejemplo@email.com</string>
+
+    <string name="login_error">Email o contraseña inválidos</string>
+
+    <string name="login">Iniciar sesión</string>
+
+    <string name="create_account">Crear cuenta</string>
+
+
+    <string name="password">contraseña</string>
+
+
+    <string name="add_expense">Agregar gasto</string>
+    <string name="save">Guardar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="edit">Editar</string>
+    <string name="delete">Eliminar</string>
+
+    <string name="new_expense">Nuevo gasto</string>
+    <string name="edit_expense">Editar gasto</string>
+
+    <string name="amount">Monto</string>
+    <string name="category">Categoría</string>
+    <string name="description">Descripción</string>
+
+    <string name="add_receipt">Agregar comprobante</string>
+    <string name="remove_receipt">Quitar comprobante</string>
+
+    <string name="use_location">Usar ubicación actual</string>
+    <string name="no_location">Sin ubicación</string>
+
+    <string name="logout">Cerrar sesión</string>
+
+    <string name="food">Comida</string>
+    <string name="transport">Transporte</string>
+    <string name="clothes">Ropa</string>
+    <string name="health">Salud</string>
+    <string name="entertainment">Entretenimiento</string>
+    <string name="other">Otros</string>
+
+
+    <string name="settings">Ajustes</string>
+    <string name="expenses">Gastos</string>
+    <string name="historic">Histórico</string>
+
+    <string name="save_settings">Guardar configuración</string>
+
+    <string name="limit_error">Ingresá un límite válido</string>
+    
+    <string name="activate_notifications">Activar notificaciones por umbral</string>
+
+    <string name="monthly_threshold">Umbral mensual</string>
+
+    <string name="expense_count">%1$d gastos registrados</string>
+    <string name="monthly_expenses">Gastos del mes: $%1$.2f</string>
+    <string name="threshold_warning">Superaste tu umbral mensual de gastos</string>
+    <string name="load_expenses_error">Error al cargar gastos</string>
+
+    <string name="filter_by_date">Filtrar por fecha</string>
+    <string name="from">Desde</string>
+    <string name="to">Hasta</string>
+    <string name="clear_filters">Limpiar filtros</string>
+    <string name="categories">Categorías</string>
+    <string name="category_summary">Resumen por categoría</string>
+    <string name="monthly_summary">Resumen por mes</string>
+    <string name="history_load_error">Error al cargar histórico</string>
+
+
+
+
+
 </resources>

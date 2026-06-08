@@ -17,8 +17,12 @@ import com.catedra.misgastos.ui.auth.LoginFragment
 import com.catedra.misgastos.ui.expenses.ExpenseListFragment
 import com.catedra.misgastos.ui.history.ExpenseHistoryFragment
 import com.catedra.misgastos.ui.settings.SettingsFragment
+import com.catedra.misgastos.utils.LocaleManager
 import com.catedra.misgastos.utils.NotificationHelper
 import com.google.firebase.auth.FirebaseAuth
+import android.content.Context
+import android.content.res.Configuration
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,6 +35,7 @@ class MainActivity : AppCompatActivity() {
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -146,5 +151,20 @@ class MainActivity : AppCompatActivity() {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+
+    override fun attachBaseContext(newBase: Context) {
+        val language = LocaleManager.getLanguage(newBase)
+        val locale = Locale(language)
+
+        Locale.setDefault(locale)
+
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+
+        val context = newBase.createConfigurationContext(config)
+
+        super.attachBaseContext(context)
     }
 }

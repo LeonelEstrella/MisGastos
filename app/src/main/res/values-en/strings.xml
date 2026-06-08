@@ -1,0 +1,79 @@
+<resources>
+
+    <string name="app_name">MyExpenses</string>
+
+    <string name="app_main">My Expenses</string>
+
+    <string name="app_description">Organize your expenses in a simple way</string>
+
+    <string name="language">Language</string>
+
+    <string name="add_expense">Add expense</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+
+
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+
+    <string name="edit_email">example@email.com</string>
+
+    <string name="edit_password">enter your password</string>
+
+    <string name="login_error">Invalid email or password</string>
+
+    <string name="login">Login</string>
+    
+    <string name="create_account">Create account</string>
+
+
+    <string name="new_expense">New expense</string>
+    <string name="edit_expense">Edit expense</string>
+
+    <string name="amount">Amount</string>
+    <string name="category">Category</string>
+    <string name="description">Description</string>
+
+    <string name="add_receipt">Add receipt</string>
+    <string name="remove_receipt">Remove receipt</string>
+
+    <string name="use_location">Use current location</string>
+    <string name="no_location">No location</string>
+
+    <string name="logout">Logout</string>
+
+    <string name="food">Food</string>
+    <string name="transport">Transport</string>
+    <string name="clothes">Clothes</string>
+    <string name="health">Health</string>
+    <string name="entertainment">Entertainment</string>
+    <string name="other">Other</string>
+
+    <string name="settings">Settings</string>
+    <string name="expenses">Expenses</string>
+    <string name="historic">Historic</string>
+
+    <string name="save_settings">Save settings</string>
+    <string name="limit_error">Enter a valid limit</string>
+    <string name="activate_notifications">Activate threshold notifications</string>
+    <string name="monthly_threshold">Monthly threshold</string>
+
+    <string name="monthly_expenses">Monthly expenses: $%1$.2f</string>
+    <string name="expense_count">%1$d registered expenses</string>
+    <string name="threshold_warning">You exceeded your monthly spending limit</string>
+    <string name="load_expenses_error">Error loading expenses</string>
+
+    <string name="filter_by_date">Filter by date</string>
+    <string name="from">From</string>
+    <string name="to">To</string>
+    <string name="clear_filters">Clear filters</string>
+    <string name="categories">Categories</string>
+
+    <string name="category_summary">Summary by category</string>
+    <string name="monthly_summary">Summary by month</string>
+    <string name="history_load_error">Error loading history</string>
+
+
+</resources>

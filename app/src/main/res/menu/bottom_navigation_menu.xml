@@ -4,16 +4,16 @@
     <item
         android:id="@+id/nav_expenses"
         android:icon="@drawable/ic_nav_expenses"
-        android:title="Gastos" />
+        android:title="@string/expenses" />
 
     <item
         android:id="@+id/nav_history"
         android:icon="@drawable/ic_nav_history"
-        android:title="Histórico" />
+        android:title="@string/historic" />
 
     <item
         android:id="@+id/nav_settings"
         android:icon="@drawable/ic_nav_settings"
-        android:title="Ajustes" />
+        android:title="@string/settings" />
 
 </menu>

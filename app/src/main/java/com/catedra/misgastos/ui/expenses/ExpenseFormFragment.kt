@@ -24,6 +24,7 @@ import kotlinx.coroutines.tasks.await
 import com.catedra.misgastos.data.repository.SettingsRepository
 import com.catedra.misgastos.utils.NotificationHelper
 import android.widget.ArrayAdapter
+import com.catedra.misgastos.R
 
 class ExpenseFormFragment : Fragment() {
 
@@ -42,10 +43,21 @@ class ExpenseFormFragment : Fragment() {
     private var selectedLatitude: Double? = null
     private var selectedLongitude: Double? = null
 
-    private val categories = listOf("Ropa", "Comida", "Transporte", "Salud", "Entretenimiento", "Otros")
+
 
     private val fusedLocationClient by lazy {
         LocationServices.getFusedLocationProviderClient(requireActivity())
+    }
+
+    private fun getCategories(): List<String> {
+        return listOf(
+            getString(R.string.clothes),
+            getString(R.string.food),
+            getString(R.string.transport),
+            getString(R.string.health),
+            getString(R.string.entertainment),
+            getString(R.string.other)
+        )
     }
 
     private val locationPermissionLauncher =
@@ -91,12 +103,12 @@ class ExpenseFormFragment : Fragment() {
 
     private fun setupInitialState() {
         if (isEditMode) {
-            binding.textFormTitle.text = "Editar gasto"
+            binding.textFormTitle.text = getString(R.string.edit_expense)
             binding.buttonSave.text = "Actualizar"
             loadExpenseForEdit()
         } else {
-            binding.textFormTitle.text = "Nuevo gasto"
-            binding.buttonSave.text = "Guardar"
+            binding.textFormTitle.text = getString(R.string.new_expense)
+            binding.buttonSave.text = getString(R.string.save)
         }
     }
 
@@ -112,6 +124,8 @@ class ExpenseFormFragment : Fragment() {
 
             if (expense != null) {
                 currentExpense = expense
+
+                val categories= getCategories()
 
                 binding.editAmount.setText(expense.amount.toString())
                 val index = categories.indexOf(expense.category)
@@ -138,6 +152,8 @@ class ExpenseFormFragment : Fragment() {
     }
 
     private fun setupCategorySpinner() {
+        val categories= getCategories()
+
         val adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,

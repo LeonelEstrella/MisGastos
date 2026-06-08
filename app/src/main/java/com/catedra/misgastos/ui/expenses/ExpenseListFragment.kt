@@ -1,5 +1,6 @@
 package com.catedra.misgastos.ui.expenses
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -91,6 +92,7 @@ class ExpenseListFragment: Fragment() {
         binding.recyclerExpenses.adapter = adapter
     }
 
+    @SuppressLint("StringFormatInvalid")
     private fun setupObservers(){
         viewModel.expenses.observe(viewLifecycleOwner) { expenses ->
             allExpenses = expenses
@@ -107,12 +109,10 @@ class ExpenseListFragment: Fragment() {
             binding.textError.text = error.orEmpty()
         }
 
-        viewModel.monthlyTotal.observe(viewLifecycleOwner) { total ->
-            binding.textMonthlyTotal.text = "Total del mes: $${total}"
-        }
     }
 
     private fun setupListeners() {
+
 
         binding.fabAddExpense.setOnClickListener {
             navigateToForm()
@@ -239,6 +239,7 @@ class ExpenseListFragment: Fragment() {
         return "$ %.2f".format(amount)
     }
 
+    @SuppressLint("StringFormatInvalid")
     private fun applyCategoryFilter() {
         val filteredExpenses = if (selectedCategory == null) {
             allExpenses
@@ -251,13 +252,16 @@ class ExpenseListFragment: Fragment() {
         adapter.submitList(filteredExpenses)
 
         val total = filteredExpenses.sumOf { it.amount }
-        binding.textMonthlyTotal.text = "Total: ${formatAmount(total)}"
+
+        binding.textMonthlyTotal.text =
+            getString(R.string.monthly_expenses, total)
+
 
         binding.textExpenseCount.text =
             if (filteredExpenses.size == 1) {
-                "1 gasto registrado"
+                getString(R.string.expense_count, filteredExpenses.size)
             } else {
-                "${filteredExpenses.size} gastos registrados"
+                getString(R.string.expense_count, filteredExpenses.size)
             }
 
         updateThresholdWarning(total)
