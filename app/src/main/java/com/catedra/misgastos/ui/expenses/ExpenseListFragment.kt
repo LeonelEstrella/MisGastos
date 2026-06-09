@@ -26,9 +26,8 @@ import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.catedra.misgastos.MainActivity
 import com.catedra.misgastos.data.repository.SettingsRepository
-import java.nio.DoubleBuffer
+import com.catedra.misgastos.data.model.ExpenseCategory
 
 class ExpenseListFragment: Fragment() {
 
@@ -93,7 +92,7 @@ class ExpenseListFragment: Fragment() {
     }
 
     @SuppressLint("StringFormatInvalid")
-    private fun setupObservers(){
+    private fun setupObservers() {
         viewModel.expenses.observe(viewLifecycleOwner) { expenses ->
             allExpenses = expenses
             setupCategoryChips(expenses)
@@ -106,9 +105,14 @@ class ExpenseListFragment: Fragment() {
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
             binding.textError.isVisible = error != null
-            binding.textError.text = error.orEmpty()
-        }
 
+            binding.textError.text =
+                if (error.isNullOrBlank()) {
+                    getString(R.string.load_expenses_error)
+                } else {
+                    error
+                }
+        }
     }
 
     private fun setupListeners() {
@@ -122,11 +126,14 @@ class ExpenseListFragment: Fragment() {
             if (visibleExpenses.isEmpty()) {
                 Toast.makeText(
                     requireContext(),
-                    "No hay gastos para exportar",
+                    getString(R.string.no_expenses_to_export),
                     Toast.LENGTH_SHORT
                 ).show()
             } else {
-                val categoryText = selectedCategory ?: "todos"
+                val categoryText = selectedCategory
+                    ?.let { getCategoryLabel(it).lowercase(Locale.getDefault()).replace(" ", "_") }
+                    ?: getString(R.string.all).lowercase(Locale.getDefault())
+
                 createPdfLauncher.launch("reporte_gastos_$categoryText.pdf")
             }
         }
@@ -143,12 +150,12 @@ class ExpenseListFragment: Fragment() {
 
     private fun confirmDeleteExpense(expense: Expense) {
         AlertDialog.Builder(requireContext())
-            .setTitle("Eliminar gasto")
-            .setMessage("¿Desea eliminar este gasto?")
-            .setPositiveButton("Eliminar") { _, _ ->
+            .setTitle(getString(R.string.delete_expense_title))
+            .setMessage(getString(R.string.delete_expense_message))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 deleteExpense(expense.id)
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -160,7 +167,7 @@ class ExpenseListFragment: Fragment() {
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
-                    e.message ?: "Error al eliminar el gasto",
+                    e.message ?: getString(R.string.delete_expense_error),
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -203,7 +210,7 @@ class ExpenseListFragment: Fragment() {
         binding.chipGroupCategories.removeAllViews()
 
         val chipAll = Chip(requireContext()).apply {
-            text = "Todos"
+            text = getString(R.string.all)
             isCheckable = true
             isChecked = selectedCategory == null
             setOnClickListener {
@@ -215,18 +222,17 @@ class ExpenseListFragment: Fragment() {
         binding.chipGroupCategories.addView(chipAll)
 
         val categories = expenses
-            .map { it.category }
-            .filter { it.isNotBlank() }
+            .map { expense -> getCategoryFromValue(expense.category) }
             .distinct()
-            .sorted()
+            .sortedBy { getString(it.labelResId) }
 
         categories.forEach { category ->
             val chip = Chip(requireContext()).apply {
-                text = category
+                text = getString(category.labelResId)
                 isCheckable = true
-                isChecked = selectedCategory == category
+                isChecked = selectedCategory == category.code
                 setOnClickListener {
-                    selectedCategory = category
+                    selectedCategory = category.code
                     applyCategoryFilter()
                 }
             }
@@ -239,12 +245,27 @@ class ExpenseListFragment: Fragment() {
         return "$ %.2f".format(amount)
     }
 
+    private fun getCategoryFromValue(category: String): ExpenseCategory {
+        return if (ExpenseCategory.entries.any { it.code == category }) {
+            ExpenseCategory.fromCode(category)
+        } else {
+            ExpenseCategory.fromLegacyText(category)
+        }
+    }
+
+    private fun getCategoryLabel(category: String): String {
+        val expenseCategory = getCategoryFromValue(category)
+        return getString(expenseCategory.labelResId)
+    }
+
     @SuppressLint("StringFormatInvalid")
     private fun applyCategoryFilter() {
         val filteredExpenses = if (selectedCategory == null) {
             allExpenses
         } else {
-            allExpenses.filter { it.category == selectedCategory }
+            allExpenses.filter { expense ->
+                getCategoryFromValue(expense.category).code == selectedCategory
+            }
         }
 
         visibleExpenses = filteredExpenses
@@ -259,7 +280,7 @@ class ExpenseListFragment: Fragment() {
 
         binding.textExpenseCount.text =
             if (filteredExpenses.size == 1) {
-                getString(R.string.expense_count, filteredExpenses.size)
+                getString(R.string.expense_count_one)
             } else {
                 getString(R.string.expense_count, filteredExpenses.size)
             }
@@ -268,12 +289,13 @@ class ExpenseListFragment: Fragment() {
     }
 
     private fun updateThresholdWarning(total : Double) {
-        val shoueldShowWarning = notificationsEnabled && monthlyLimit > 0 && total > monthlyLimit
+        val shouldShowWarning = notificationsEnabled && monthlyLimit > 0 && total > monthlyLimit
 
-        binding.textThresholdWarning.isVisible = shoueldShowWarning
+        binding.textThresholdWarning.isVisible = shouldShowWarning
 
-        if (shoueldShowWarning) {
-            binding.textThresholdWarning.text = "Superaste tu umbral mensual de ${formatAmount(monthlyLimit)}"
+        if (shouldShowWarning) {
+            binding.textThresholdWarning.text =
+                getString(R.string.threshold_warning, formatAmount(monthlyLimit))
         }
     }
 
@@ -332,26 +354,27 @@ class ExpenseListFragment: Fragment() {
         val generatedDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
             .format(Date())
 
-        val filterText = selectedCategory ?: "Todos"
+        val filterText =
+            selectedCategory?.let { getCategoryLabel(it) } ?: getString(R.string.all)
 
-        drawLine("Mis Gastos - Reporte", titlePaint)
-        y += 8
+            drawLine(getString(R.string.expenses_report_title), titlePaint)
+            y += 8
 
-        drawLine("Fecha de generación: $generatedDate")
-        drawLine("Filtro aplicado: $filterText")
-        drawLine("Cantidad de gastos: ${expenses.size}")
-        drawLine("Total exportado: ${formatAmount(total)}")
-        y += 16
+            drawLine(getString(R.string.generated_date, generatedDate))
+            drawLine(getString(R.string.applied_filter, filterText))
+            drawLine(getString(R.string.exported_expense_count, expenses.size))
+            drawLine(getString(R.string.exported_total, formatAmount(total)))
+            y += 16
 
-        drawLine("Detalle de gastos", subtitlePaint)
-        y += 8
+            drawLine(getString(R.string.expense_detail_title), subtitlePaint)
+            y += 8
 
-        expenses.forEachIndexed { index, expense ->
-            drawLine("${index + 1}. ${expense.category}", boldPaint)
-            drawLine("Fecha: ${formatDate(expense.date)}")
-            drawLine("Descripción: ${expense.description}")
-            drawLine("Monto: ${formatAmount(expense.amount)}")
-            y += 10
+            expenses.forEachIndexed { index, expense ->
+                drawLine("${index + 1}. ${getCategoryLabel(expense.category)}", boldPaint)
+                drawLine(getString(R.string.date_label, formatDate(expense.date)))
+                drawLine(getString(R.string.description_label, expense.description))
+                drawLine(getString(R.string.amount_label, formatAmount(expense.amount)))
+                y += 10
         }
 
         pdfDocument.finishPage(page)
@@ -378,13 +401,13 @@ class ExpenseListFragment: Fragment() {
 
             Toast.makeText(
                 requireContext(),
-                "PDF exportado correctamente",
+                getString(R.string.pdf_exported_success),
                 Toast.LENGTH_LONG
             ).show()
         } catch (e: Exception) {
             Toast.makeText(
                 requireContext(),
-                e.message ?: "Error al exportar PDF",
+                e.message ?: getString(R.string.pdf_export_error),
                 Toast.LENGTH_LONG
             ).show()
         }

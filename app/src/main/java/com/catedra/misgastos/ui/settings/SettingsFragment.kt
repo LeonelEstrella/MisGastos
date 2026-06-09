@@ -60,6 +60,7 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 binding.progressBar.isVisible = true
+                binding.textError.isVisible = false
 
                 val settings = repository.getSettings()
 
@@ -69,7 +70,7 @@ class SettingsFragment : Fragment() {
 
                 binding.checkNotificationsEnabled.isChecked = settings.notificationsEnabled
             } catch (e: Exception) {
-                showError(e.message ?: "Error al cargar configuración")
+                showError(e.message ?: getString(R.string.settings_load_error))
             } finally {
                 binding.progressBar.isVisible = false
             }
@@ -78,9 +79,10 @@ class SettingsFragment : Fragment() {
 
     private fun saveSettings() {
         val limitText = binding.editMonthlyLimit.text.toString().replace(",", ".")
-        val monthlyLimit = limitText.toDoubleOrNull()
 
-        if (monthlyLimit == null || monthlyLimit <= 0) {
+        val monthlyLimit = limitText.toDoubleOrNull() ?: 0.0
+
+        if (binding.checkNotificationsEnabled.isChecked && monthlyLimit <= 0) {
             showError(getString(R.string.limit_error))
             return
         }
@@ -100,14 +102,14 @@ class SettingsFragment : Fragment() {
 
                 Snackbar.make(
                     binding.root,
-                    "Configuración guardada",
+                    getString(R.string.settings_saved),
                     Snackbar.LENGTH_SHORT
                 )
                     .setAnchorView(requireActivity().findViewById(R.id.bottomNavigation))
                     .show()
 
             } catch (e: Exception) {
-                showError(e.message ?: "Error al guardar la configuración")
+                showError(e.message ?: getString(R.string.settings_save_error))
             } finally {
                 binding.progressBar.isVisible = false
                 binding.buttonSaveSettings.isEnabled = true
@@ -127,23 +129,37 @@ class SettingsFragment : Fragment() {
 
     private fun showLanguageDialog() {
         val languages = arrayOf(
-            "Español",
-            "English"
+            getString(R.string.spanish),
+            getString(R.string.english),
+            getString(R.string.portuguese)
         )
+
+        val currentLanguage = LocaleManager.getLanguage(requireContext())
+
+        val checkedItem =
+            when (currentLanguage) {
+                "en" -> 1
+                "pt" -> 2
+                else -> 0
+            }
 
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.language))
-            .setItems(languages) { _, which ->
+            .setSingleChoiceItems(languages, checkedItem) { dialog, which ->
 
                 val languageCode =
-                    if (which == 0) "es"
-                    else "en"
+                    when (which) {
+                        1 -> "en"
+                        2 -> "pt"
+                        else -> "es"
+                    }
 
                 LocaleManager.saveLanguage(
                     requireContext(),
                     languageCode
                 )
 
+                dialog.dismiss()
                 requireActivity().recreate()
             }
             .show()

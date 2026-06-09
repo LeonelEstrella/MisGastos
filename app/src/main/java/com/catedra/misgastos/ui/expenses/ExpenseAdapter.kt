@@ -4,12 +4,13 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.catedra.misgastos.data.model.Expense
+import com.catedra.misgastos.data.model.ExpenseCategory
 import com.catedra.misgastos.databinding.ItemExpenseBinding
 
 class ExpenseAdapter(
     private val onItemClick: (Expense) -> Unit,
     private val onDeleteClick: (Expense) -> Unit
-): RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder>() {
+) : RecyclerView.Adapter<ExpenseAdapter.ExpenseViewHolder>() {
 
     private var expenses: List<Expense> = emptyList()
 
@@ -40,9 +41,10 @@ class ExpenseAdapter(
 
     inner class ExpenseViewHolder(
         private val binding: ItemExpenseBinding
-    ): RecyclerView.ViewHolder(binding.root) {
+    ) : RecyclerView.ViewHolder(binding.root) {
+
         fun bind(expense: Expense) {
-            binding.textCategory.text = expense.category
+            binding.textCategory.text = getCategoryLabel(expense.category)
             binding.textDescription.text = expense.description
             binding.textAmount.text = formatAmount(expense.amount)
 
@@ -53,6 +55,17 @@ class ExpenseAdapter(
             binding.buttonDeleteExpense.setOnClickListener {
                 onDeleteClick(expense)
             }
+        }
+
+        private fun getCategoryLabel(category: String): String {
+            val expenseCategory =
+                if (ExpenseCategory.entries.any { it.code == category }) {
+                    ExpenseCategory.fromCode(category)
+                } else {
+                    ExpenseCategory.fromLegacyText(category)
+                }
+
+            return itemView.context.getString(expenseCategory.labelResId)
         }
     }
 }

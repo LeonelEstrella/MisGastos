@@ -36,7 +36,7 @@ class ExpenseListViewModel (
                 _monthlyTotal.value = result.sumOf { it.amount }
 
             } catch (e: Exception) {
-                _error.value = e.message ?: "Error al cargar gatos"
+                _error.value = e.message ?: ""
             } finally {
                 _loading.value = false
             }

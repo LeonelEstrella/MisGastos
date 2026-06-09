@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:gravity="center"
-            android:text="Crear cuenta"
+            android:text="@string/create_account"
             android:textColor="#1F1F1F"
             android:textSize="34sp"
             android:textStyle="bold" />
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:gravity="center"
-            android:text="Empezá a registrar tus gastos"
+            android:text="@string/register_description"
             android:textColor="#666666"
             android:textSize="16sp" />
 
@@ -68,7 +68,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="Contraseña"
+            android:text="@string/password"
             android:textColor="#333333"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -77,7 +77,7 @@
             android:id="@+id/editPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Mínimo 6 caracteres"
+            android:hint="@string/register_password_hint"
             android:inputType="textPassword"
             android:textColor="#1F1F1F"
             android:textColorHint="#888888" />
@@ -118,7 +118,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="14dp"
-            android:text="Ya tengo una cuenta"
+            android:text="@string/already_have_account"
             android:textAllCaps="false"
             android:textColor="#0B6B2B"
             android:textStyle="bold"

@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import com.catedra.misgastos.MainActivity
 import com.catedra.misgastos.databinding.FragmentRegisterBinding
 import com.google.firebase.auth.FirebaseAuth
+import com.catedra.misgastos.R
 
 class RegisterFragment : Fragment() {
 
@@ -87,12 +88,12 @@ class RegisterFragment : Fragment() {
         val password = binding.editPassword.text.toString().trim()
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showError("Ingresá un email válido")
+            showError(getString(R.string.valid_email_error))
             return
         }
 
         if (password.length < 6) {
-            showError("La contraseña debe tener al menos 6 caracteres")
+            showError(getString(R.string.password_length_error))
             return
         }
 
@@ -129,16 +130,16 @@ class RegisterFragment : Fragment() {
 
         return when {
             message.contains("email address is already in use", ignoreCase = true) ->
-                "Ese email ya está registrado"
+                getString(R.string.email_already_registered)
 
             message.contains("badly formatted", ignoreCase = true) ->
-                "Ingresá un email válido"
+                getString(R.string.valid_email_error)
 
             message.contains("password", ignoreCase = true) ->
-                "La contraseña no cumple los requisitos"
+                getString(R.string.password_requirements_error)
 
             else ->
-                "No se pudo crear la cuenta. Intentá nuevamente"
+                getString(R.string.register_error)
         }
     }
 

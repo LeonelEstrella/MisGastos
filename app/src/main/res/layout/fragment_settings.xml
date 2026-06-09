@@ -35,7 +35,7 @@
             android:id="@+id/editMonthlyLimit"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Ej: 100000"
+            android:hint="@string/monthly_threshold_hint"
             android:inputType="numberDecimal"
             android:textColor="#1F1F1F"
             android:textColorHint="#888888"

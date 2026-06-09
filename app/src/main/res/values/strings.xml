@@ -8,11 +8,11 @@
 
     <string name="language">Idioma</string>
 
-    <string name="email">Correo electronico</string>
+    <string name="email">Correo electrónico</string>
 
     <string name="edit_email">ejemplo@email.com</string>
 
-    <string name="edit_password">ejemplo@email.com</string>
+    <string name="edit_password">Ingresá tu contraseña</string>
 
     <string name="login_error">Email o contraseña inválidos</string>
 
@@ -20,8 +20,7 @@
 
     <string name="create_account">Crear cuenta</string>
 
-
-    <string name="password">contraseña</string>
+    <string name="password">Contraseña</string>
 
 
     <string name="add_expense">Agregar gasto</string>
@@ -65,9 +64,10 @@
 
     <string name="monthly_threshold">Umbral mensual</string>
 
+    <string name="expense_count_one">1 gasto registrado</string>
     <string name="expense_count">%1$d gastos registrados</string>
     <string name="monthly_expenses">Gastos del mes: $%1$.2f</string>
-    <string name="threshold_warning">Superaste tu umbral mensual de gastos</string>
+    <string name="threshold_warning">Superaste tu umbral mensual de %1$s</string>
     <string name="load_expenses_error">Error al cargar gastos</string>
 
     <string name="filter_by_date">Filtrar por fecha</string>
@@ -79,8 +79,102 @@
     <string name="monthly_summary">Resumen por mes</string>
     <string name="history_load_error">Error al cargar histórico</string>
 
+    <string name="settings_saved">Configuración guardada</string>
+    <string name="settings_load_error">Error al cargar configuración</string>
+    <string name="settings_save_error">Error al guardar la configuración</string>
+    <string name="spanish">Español</string>
+    <string name="english">Inglés</string>
+    <string name="monthly_threshold_hint">Ej: 100000</string>
 
+    <string name="invalid_login">Email o contraseña inválidos</string>
+    <string name="incorrect_login">Email o contraseña incorrectos</string>
 
+    <string name="valid_email_error">Ingresá un email válido</string>
+    <string name="password_length_error">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="email_already_registered">Ese email ya está registrado</string>
+    <string name="password_requirements_error">La contraseña no cumple los requisitos</string>
+    <string name="register_error">No se pudo crear la cuenta. Intentá nuevamente</string>
 
+    <string name="date_label">Fecha: %1$s</string>
+    <string name="expense_location_marker">Ubicación del gasto</string>
+    <string name="delete_expense_title">Eliminar gasto</string>
+    <string name="delete_expense_detail_message">¿Desea eliminar este gasto? Esta acción no se puede deshacer.</string>
+    <string name="delete_expense_message">¿Desea eliminar este gasto?</string>
+    <string name="delete_expense_error">Error al eliminar gasto</string>
+
+    <string name="update">Actualizar</string>
+
+    <string name="amount_hint">Ej: 8500</string>
+    <string name="description_hint">Ej: Almuerzo</string>
+
+    <string name="expense_not_found">No se encontró el gasto</string>
+    <string name="location_permission_error">Necesitás permitir ubicación para guardar la ubicación actual</string>
+    <string name="location_error">No se pudo obtener ubicación</string>
+    <string name="location_security_error">No hay permiso de ubicación</string>
+    <string name="selected_location">Ubicación seleccionada: %1$s, %2$s</string>
+
+    <string name="description_required">Completá la descripción</string>
+    <string name="amount_error">Ingresá un monto válido</string>
+    <string name="save_expense_error">Error al guardar el gasto</string>
+    <string name="not_authenticated">Usuario no autenticado</string>
+
+    <string name="getting_location">Obteniendo ubicación...</string>
+
+    <string name="suggest_from_receipt">Sugerir datos desde comprobante</string>
+    <string name="reading_receipt">Leyendo comprobante...</string>
+    <string name="add_receipt_first">Primero agregá una imagen del comprobante</string>
+    <string name="no_text_detected">No se detectó texto en el comprobante</string>
+    <string name="receipt_suggestions_loaded">Sugerencias cargadas. Revisalas antes de guardar.</string>
+    <string name="receipt_read_error">No se pudo leer el comprobante</string>
+    <string name="receipt_process_error">Error al procesar la imagen</string>
+
+    <string name="pdf_exported_success">PDF exportado correctamente</string>
+    <string name="pdf_export_error">Error al exportar PDF</string>
+
+    <string name="all">Todos</string>
+    <string name="all_female">Todas</string>
+    <string name="no_expenses_to_export">No hay gastos para exportar</string>
+
+    <string name="expenses_report_title">Mis Gastos - Reporte</string>
+    <string name="generated_date">Fecha de generación: %1$s</string>
+    <string name="applied_filter">Filtro aplicado: %1$s</string>
+    <string name="exported_expense_count">Cantidad de gastos: %1$d</string>
+    <string name="exported_total">Total exportado: %1$s</string>
+    <string name="expense_detail_title">Detalle de gastos</string>
+    <string name="description_label">Descripción: %1$s</string>
+    <string name="amount_label">Monto: %1$s</string>
+
+    <string name="total_history">Total histórico: %1$s</string>
+    <string name="history_expense_count_one">1 gasto encontrado</string>
+    <string name="history_expense_count">%1$d gastos encontrados</string>
+
+    <string name="no_expenses_for_filters">No hay gastos para los filtros seleccionados</string>
+    <string name="expense_singular">gasto</string>
+    <string name="expense_plural">gastos</string>
+
+    <string name="no_movements">Sin movimientos para mostrar</string>
+    <string name="total_label">Total: %1$s</string>
+    <string name="expense_quantity">Cantidad de gastos: %1$d</string>
+
+    <string name="history_report_title">Mis Gastos - Histórico</string>
+    <string name="category_label">Categoría: %1$s</string>
+    <string name="from_label">Desde: %1$s</string>
+    <string name="to_label">Hasta: %1$s</string>
+    <string name="no_filter">Sin filtro</string>
+    <string name="history_pdf_file_name">historico_gastos.pdf</string>
+
+    <string name="already_have_account">Ya tengo una cuenta</string>
+
+    <string name="expense_alerts_channel_name">Alertas de gastos</string>
+    <string name="expense_alerts_channel_description">Notificaciones cuando se supere el límite mensual de gastos</string>
+
+    <string name="limit_exceeded_notification_title">Límite mensual superado</string>
+    <string name="limit_exceeded_notification_text">Superaste tu límite mensual</string>
+    <string name="limit_exceeded_notification_detail">Superaste tu límite mensual de gastos. Total actual: %1$s. Límite configurado: %2$s.</string>
+
+    <string name="register_description">Empezá a registrar tus gastos</string>
+    <string name="register_password_hint">Mínimo 6 caracteres</string>
+
+    <string name="portuguese">Portugués</string>
 
 </resources>
