@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.catedra.misgastos.MainActivity
+import com.catedra.misgastos.data.model.ExpenseCategory
 
 class ExpenseDetailFragment : Fragment() {
 
@@ -77,10 +77,11 @@ class ExpenseDetailFragment : Fragment() {
             binding.progressBar.isVisible = false
 
             if (expense != null) {
-                binding.textCategory.text = expense.category
+                binding.textCategory.text = getCategoryLabel(expense.category)
                 binding.textAmount.text = formatAmount(expense.amount)
                 binding.textDescription.text = expense.description
-                binding.textDate.text = "Fecha: ${formatDate(expense.date)}"
+                binding.textDate.text =
+                    getString(R.string.date_label, formatDate(expense.date))
 
                 if (!expense.imageUrl.isNullOrBlank()) {
                     binding.imageReceipt.isVisible = true
@@ -116,7 +117,7 @@ class ExpenseDetailFragment : Fragment() {
             map.addMarker(
                 MarkerOptions()
                     .position(position)
-                    .title("Ubicación del gasto")
+                    .title(getString(R.string.expense_location_marker))
             )
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 16f))
         }
@@ -140,14 +141,25 @@ class ExpenseDetailFragment : Fragment() {
         return "$ %.2f".format(amount)
     }
 
+    private fun getCategoryLabel(category: String): String {
+        val expenseCategory =
+            if (ExpenseCategory.entries.any { it.code == category }) {
+                ExpenseCategory.fromCode(category)
+            } else {
+                ExpenseCategory.fromLegacyText(category)
+            }
+
+        return getString(expenseCategory.labelResId)
+    }
+
     private fun confirmDeleteExpense() {
         AlertDialog.Builder(requireContext())
-            .setTitle("Eliminar gasto")
-            .setMessage("¿Desea eliminar este gasto? Esta acción no se puede deshacer.")
-            .setPositiveButton("Eliminar") { _, _ ->
+            .setTitle(getString(R.string.delete_expense_title))
+            .setMessage(getString(R.string.delete_expense_detail_message))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 deleteExpense()
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -166,7 +178,7 @@ class ExpenseDetailFragment : Fragment() {
                 binding.progressBar.isVisible = false
                 Toast.makeText(
                     requireContext(),
-                    e.message ?: "Error al eliminar gasto",
+                    e.message ?: getString(R.string.delete_expense_error),
                     Toast.LENGTH_LONG
                 ).show()
             }

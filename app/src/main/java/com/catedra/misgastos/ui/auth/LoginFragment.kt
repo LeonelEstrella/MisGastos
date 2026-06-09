@@ -91,12 +91,12 @@ class LoginFragment : Fragment() {
         val password = binding.editPassword.text.toString().trim()
 
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showError("Email o contraseña inválidos")
+            showError(getString(R.string.invalid_login))
             return
         }
 
         if (password.length < 6) {
-            showError("Email o contraseña inválidos")
+            showError(getString(R.string.invalid_login))
             return
         }
 
@@ -109,7 +109,7 @@ class LoginFragment : Fragment() {
             }
             .addOnFailureListener {
                 setLoading(false)
-                showError("Email o contraseña incorrectos")
+                showError(getString(R.string.incorrect_login))
             }
     }
 

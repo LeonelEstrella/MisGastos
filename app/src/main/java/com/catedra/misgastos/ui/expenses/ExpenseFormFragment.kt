@@ -30,6 +30,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.catedra.misgastos.utils.ReceiptTextAnalyzer
+import com.catedra.misgastos.data.model.ExpenseCategory
 
 class ExpenseFormFragment : Fragment() {
 
@@ -54,15 +55,8 @@ class ExpenseFormFragment : Fragment() {
         LocationServices.getFusedLocationProviderClient(requireActivity())
     }
 
-    private fun getCategories(): List<String> {
-        return listOf(
-            getString(R.string.clothes),
-            getString(R.string.food),
-            getString(R.string.transport),
-            getString(R.string.health),
-            getString(R.string.entertainment),
-            getString(R.string.other)
-        )
+    private fun getCategories(): List<ExpenseCategory> {
+        return ExpenseCategory.entries
     }
 
     private val locationPermissionLauncher =
@@ -70,7 +64,7 @@ class ExpenseFormFragment : Fragment() {
             if (granted) {
                 getCurrentLocation()
             } else {
-                showError("Necesitás permitir ubicación para guardar la ubicación actual")
+                showError(getString(R.string.location_permission_error))
                 setLocationLoading(false)
             }
         }
@@ -109,7 +103,7 @@ class ExpenseFormFragment : Fragment() {
     private fun setupInitialState() {
         if (isEditMode) {
             binding.textFormTitle.text = getString(R.string.edit_expense)
-            binding.buttonSave.text = "Actualizar"
+            binding.buttonSave.text = getString(R.string.update)
             loadExpenseForEdit()
         } else {
             binding.textFormTitle.text = getString(R.string.new_expense)
@@ -130,13 +124,23 @@ class ExpenseFormFragment : Fragment() {
             if (expense != null) {
                 currentExpense = expense
 
-                val categories= getCategories()
+                val categories = getCategories()
 
                 binding.editAmount.setText(expense.amount.toString())
-                val index = categories.indexOf(expense.category)
+
+                val expenseCategory =
+                    if (expense.category in categories.map { it.code }) {
+                        ExpenseCategory.fromCode(expense.category)
+                    } else {
+                        ExpenseCategory.fromLegacyText(expense.category)
+                    }
+
+                val index = categories.indexOf(expenseCategory)
+
                 if (index >= 0) {
                     binding.spinnerCategory.setSelection(index)
                 }
+
                 binding.editDescription.setText(expense.description)
 
                 selectedLatitude = expense.latitude
@@ -151,18 +155,20 @@ class ExpenseFormFragment : Fragment() {
                         .into(binding.imageReceiptPreview)
                 }
             } else {
-                showError("No se encontró el gasto")
+                showError(getString(R.string.expense_not_found))
             }
         }
     }
 
     private fun setupCategorySpinner() {
-        val categories= getCategories()
+        val categoryLabels = getCategories().map { category ->
+            getString(category.labelResId)
+        }
 
         val adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
-            categories
+            categoryLabels
         )
 
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -234,7 +240,7 @@ class ExpenseFormFragment : Fragment() {
                         setLocationLoading(false)
 
                     } else {
-                        showError("No se pudo obtener ubicación")
+                        showError(getString(R.string.location_error))
                         setLocationLoading(false)
                     }
                 }
@@ -250,19 +256,23 @@ class ExpenseFormFragment : Fragment() {
 
         } catch (e: SecurityException) {
 
-            showError("No hay permiso de ubicación")
+            showError(getString(R.string.location_security_error))
             setLocationLoading(false)
 
         }
     }
 
     private fun updateLocationText() {
-        if (selectedLatitude != null && selectedLongitude != null) {
-            binding.textSelectedLocation.text =
-                "Ubicación seleccionada: $selectedLatitude, $selectedLongitude"
-        } else {
-            binding.textSelectedLocation.text = "Sin ubicación"
-        }
+        binding.textSelectedLocation.text =
+            if (selectedLatitude != null && selectedLongitude != null) {
+                getString(
+                    R.string.selected_location,
+                    selectedLatitude.toString(),
+                    selectedLongitude.toString()
+                )
+            } else {
+                getString(R.string.no_location)
+            }
     }
 
     private fun removeSelectedReceipt() {
@@ -273,16 +283,17 @@ class ExpenseFormFragment : Fragment() {
 
     private fun saveExpense() {
         val amountText = binding.editAmount.text.toString()
-        val category = binding.spinnerCategory.selectedItem.toString()
+        val selectedCategory = getCategories()[binding.spinnerCategory.selectedItemPosition]
+        val category = selectedCategory.code
         val description = binding.editDescription.text.toString().trim()
         if (description.isBlank()) {
-            showError("Completá la descripción")
+            showError(getString(R.string.description_required))
             return
         }
         val amount = amountText.replace(",", ".").toDoubleOrNull()
 
         if (amount == null || amount <= 0) {
-            showError("Ingresá un monto válido")
+            showError(getString(R.string.amount_error))
             return
         }
 
@@ -304,7 +315,7 @@ class ExpenseFormFragment : Fragment() {
 
                 parentFragmentManager.popBackStack()
             } catch (e: Exception) {
-                showError(e.message ?: "Error al guardar el gasto")
+                showError(e.message ?: getString(R.string.save_expense_error))
             } finally {
                 binding.progressBar.isVisible = false
                 binding.buttonSave.isEnabled = true
@@ -359,7 +370,7 @@ class ExpenseFormFragment : Fragment() {
 
     private suspend fun uploadReceiptImage(uri: Uri): String {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
-            ?: throw Exception("Usuario no autenticado")
+            ?: throw Exception(getString(R.string.not_authenticated))
 
         val fileName = "${System.currentTimeMillis()}.jpg"
 
@@ -389,9 +400,9 @@ class ExpenseFormFragment : Fragment() {
 
         binding.buttonSuggestFromReceipt.text =
             if (isLoading) {
-                "Leyendo comprobante..."
+                getString(R.string.reading_receipt)
             } else {
-                "Sugerir datos desde comprobante"
+                getString(R.string.suggest_from_receipt)
             }
     }
 
@@ -400,7 +411,7 @@ class ExpenseFormFragment : Fragment() {
         val uri = selectedImageUri
 
         if (uri == null) {
-            showError("Primero agregá una imagen del comprobante")
+            showError(getString(R.string.add_receipt_first))
             return
         }
 
@@ -419,7 +430,7 @@ class ExpenseFormFragment : Fragment() {
                     val recognizedText = visionText.text
 
                     if (recognizedText.isBlank()) {
-                        showError("No se detectó texto en el comprobante")
+                        showError(getString(R.string.no_text_detected))
                         return@addOnSuccessListener
                     }
 
@@ -429,12 +440,12 @@ class ExpenseFormFragment : Fragment() {
 
                     Toast.makeText(
                         requireContext(),
-                        "Sugerencias cargadas. Revisalas antes de guardar.",
+                        getString(R.string.receipt_suggestions_loaded),
                         Toast.LENGTH_LONG
                     ).show()
                 }
                 .addOnFailureListener { exception ->
-                    showError(exception.message ?: "No se pudo leer el comprobante")
+                    showError(exception.message ?: getString(R.string.receipt_read_error))
                 }
                 .addOnCompleteListener {
                     setOcrLoading(false)
@@ -442,7 +453,7 @@ class ExpenseFormFragment : Fragment() {
 
         } catch (e: Exception) {
             setOcrLoading(false)
-            showError(e.message ?: "Error al procesar la imagen")
+            showError(e.message ?: getString(R.string.receipt_process_error))
         }
     }
 
@@ -454,9 +465,12 @@ class ExpenseFormFragment : Fragment() {
             binding.editAmount.setText("%.2f".format(amount))
         }
 
-        suggestion.category?.let { category ->
-            val categories= getCategories()
-            val index = categories.indexOf(category)
+        suggestion.category?.let { categoryText ->
+            val categories = getCategories()
+            val suggestedCategory = ExpenseCategory.fromLegacyText(categoryText)
+
+            val index = categories.indexOf(suggestedCategory)
+
             if (index >= 0) {
                 binding.spinnerCategory.setSelection(index)
             }
@@ -502,10 +516,9 @@ class ExpenseFormFragment : Fragment() {
 
         binding.buttonUseCurrentLocation.text =
             if (isLoading) {
-                "Obteniendo ubicación..."
-            }
-            else {
-                "Usar ubicación actual"
+                getString(R.string.getting_location)
+            } else {
+                getString(R.string.use_location)
             }
     }
 

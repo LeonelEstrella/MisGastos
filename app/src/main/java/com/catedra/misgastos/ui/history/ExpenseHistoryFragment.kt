@@ -24,6 +24,8 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import com.catedra.misgastos.R
+import com.catedra.misgastos.data.model.ExpenseCategory
 
 class ExpenseHistoryFragment : Fragment() {
 
@@ -67,7 +69,8 @@ class ExpenseHistoryFragment : Fragment() {
         binding.buttonStartDate.setOnClickListener {
             showDatePicker { selectedDate ->
                 startDateMillis = startOfDay(selectedDate)
-                binding.buttonStartDate.text = "Desde ${displayDateFormat.format(Date(startDateMillis!!))}"
+                binding.buttonStartDate.text =
+                    "${getString(R.string.from)} ${displayDateFormat.format(Date(startDateMillis!!))}"
                 applyFilters()
             }
         }
@@ -75,7 +78,8 @@ class ExpenseHistoryFragment : Fragment() {
         binding.buttonEndDate.setOnClickListener {
             showDatePicker { selectedDate ->
                 endDateMillis = endOfDay(selectedDate)
-                binding.buttonEndDate.text = "Hasta ${displayDateFormat.format(Date(endDateMillis!!))}"
+                binding.buttonEndDate.text =
+                    "${getString(R.string.to)} ${displayDateFormat.format(Date(endDateMillis!!))}"
                 applyFilters()
             }
         }
@@ -85,8 +89,8 @@ class ExpenseHistoryFragment : Fragment() {
             startDateMillis = null
             endDateMillis = null
 
-            binding.buttonStartDate.text = "Desde"
-            binding.buttonEndDate.text = "Hasta"
+            binding.buttonStartDate.text = getString(R.string.from)
+            binding.buttonEndDate.text = getString(R.string.to)
 
             setupCategoryChips(allExpenses)
             applyFilters()
@@ -96,11 +100,11 @@ class ExpenseHistoryFragment : Fragment() {
             if (visibleExpenses.isEmpty()) {
                 Toast.makeText(
                     requireContext(),
-                    "No hay gastos para exportar",
+                    getString(R.string.no_expenses_to_export),
                     Toast.LENGTH_SHORT
                 ).show()
             } else {
-                createPdfLauncher.launch("historico_gastos.pdf")
+                createPdfLauncher.launch(getString(R.string.history_pdf_file_name))
             }
         }
     }
@@ -116,7 +120,7 @@ class ExpenseHistoryFragment : Fragment() {
                 applyFilters()
 
             } catch (e: Exception) {
-                binding.textError.text = e.message ?: "Error al cargar histórico"
+                binding.textError.text = e.message ?: getString(R.string.history_load_error)
                 binding.textError.isVisible = true
             } finally {
                 binding.progressBar.isVisible = false
@@ -128,7 +132,7 @@ class ExpenseHistoryFragment : Fragment() {
         binding.chipGroupHistoryCategories.removeAllViews()
 
         val chipAll = Chip(requireContext()).apply {
-            text = "Todas"
+            text = getString(R.string.all_female)
             isCheckable = true
             isChecked = selectedCategory == null
 
@@ -141,19 +145,18 @@ class ExpenseHistoryFragment : Fragment() {
         binding.chipGroupHistoryCategories.addView(chipAll)
 
         val categories = expenses
-            .map { it.category }
-            .filter { it.isNotBlank() }
+            .map { expense -> getCategoryFromValue(expense.category) }
             .distinct()
-            .sorted()
+            .sortedBy { getString(it.labelResId) }
 
         categories.forEach { category ->
             val chip = Chip(requireContext()).apply {
-                text = category
+                text = getString(category.labelResId)
                 isCheckable = true
-                isChecked = selectedCategory == category
+                isChecked = selectedCategory == category.code
 
                 setOnClickListener {
-                    selectedCategory = category
+                    selectedCategory = category.code
                     applyFilters()
                 }
             }
@@ -165,7 +168,8 @@ class ExpenseHistoryFragment : Fragment() {
     private fun applyFilters() {
         val filtered = allExpenses.filter { expense ->
             val matchesCategory =
-                selectedCategory == null || expense.category == selectedCategory
+                selectedCategory == null ||
+                        getCategoryFromValue(expense.category).code == selectedCategory
 
             val matchesStartDate =
                 startDateMillis == null || expense.date >= startDateMillis!!
@@ -186,13 +190,14 @@ class ExpenseHistoryFragment : Fragment() {
     private fun updateHeader() {
         val total = visibleExpenses.sumOf { it.amount }
 
-        binding.textHistoryTotal.text = "Total histórico: ${formatAmount(total)}"
+        binding.textHistoryTotal.text =
+            getString(R.string.total_history, formatAmount(total))
 
         binding.textHistoryCount.text =
             if (visibleExpenses.size == 1) {
-                "1 gasto encontrado"
+                getString(R.string.history_expense_count_one)
             } else {
-                "${visibleExpenses.size} gastos encontrados"
+                getString(R.string.history_expense_count, visibleExpenses.size)
             }
     }
 
@@ -200,20 +205,28 @@ class ExpenseHistoryFragment : Fragment() {
         binding.containerCategorySummary.removeAllViews()
 
         if (visibleExpenses.isEmpty()) {
-            addEmptyText(binding.containerCategorySummary, "No hay gastos para los filtros seleccionados")
+            addEmptyText(
+                binding.containerCategorySummary,
+                getString(R.string.no_expenses_for_filters)
+            )
             return
         }
 
         val groupedByCategory = visibleExpenses
-            .groupBy { it.category }
+            .groupBy { expense -> getCategoryFromValue(expense.category).code }
             .toList()
             .sortedByDescending { (_, expenses) -> expenses.sumOf { it.amount } }
 
-        groupedByCategory.forEach { (category, expenses) ->
+        groupedByCategory.forEach { (categoryCode, expenses) ->
             val total = expenses.sumOf { it.amount }
             val count = expenses.size
 
-            val text = "$category\n${formatAmount(total)} · $count gasto${if (count == 1) "" else "s"}"
+            val expenseWord =
+                if (count == 1) getString(R.string.expense_singular)
+                else getString(R.string.expense_plural)
+
+            val text =
+                "${getCategoryLabel(categoryCode)}\n${formatAmount(total)} · $count $expenseWord"
 
             addSummaryCard(text)
         }
@@ -223,7 +236,10 @@ class ExpenseHistoryFragment : Fragment() {
         binding.containerMonthlySummary.removeAllViews()
 
         if (visibleExpenses.isEmpty()) {
-            addEmptyText(binding.containerMonthlySummary, "Sin movimientos para mostrar")
+            addEmptyText(
+                binding.containerMonthlySummary,
+                getString(R.string.no_movements)
+            )
             return
         }
 
@@ -236,7 +252,8 @@ class ExpenseHistoryFragment : Fragment() {
             val total = expenses.sumOf { it.amount }
             val count = expenses.size
 
-            val text = "$month\nTotal: ${formatAmount(total)}\nCantidad de gastos: $count"
+            val text =
+                "$month\n${getString(R.string.total_label, formatAmount(total))}\n${getString(R.string.expense_quantity, count)}"
 
             addMonthlyCard(text)
         }
@@ -404,6 +421,19 @@ class ExpenseHistoryFragment : Fragment() {
         return "$ %.2f".format(amount)
     }
 
+    private fun getCategoryFromValue(category: String): ExpenseCategory {
+        return if (ExpenseCategory.entries.any { it.code == category }) {
+            ExpenseCategory.fromCode(category)
+        } else {
+            ExpenseCategory.fromLegacyText(category)
+        }
+    }
+
+    private fun getCategoryLabel(category: String): String {
+        val expenseCategory = getCategoryFromValue(category)
+        return getString(expenseCategory.labelResId)
+    }
+
     private fun formatDate(dateMillis: Long): String {
         return displayDateFormat.format(Date(dateMillis))
     }
@@ -418,14 +448,14 @@ class ExpenseHistoryFragment : Fragment() {
 
             Toast.makeText(
                 requireContext(),
-                "PDF exportado correctamente",
+                getString(R.string.pdf_exported_success),
                 Toast.LENGTH_LONG
             ).show()
 
         } catch (e: Exception) {
             Toast.makeText(
                 requireContext(),
-                e.message ?: "Error al exportar PDF",
+                e.message ?: getString(R.string.pdf_export_error),
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -486,25 +516,34 @@ class ExpenseHistoryFragment : Fragment() {
         val generatedDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
             .format(Date())
 
-        drawLine("Mis Gastos - Histórico", titlePaint)
+        val categoryText =
+            selectedCategory?.let { getCategoryLabel(it) } ?: getString(R.string.all_female)
+
+        val startText =
+            startDateMillis?.let { formatDate(it) } ?: getString(R.string.no_filter)
+
+        val endText =
+            endDateMillis?.let { formatDate(it) } ?: getString(R.string.no_filter)
+
+        drawLine(getString(R.string.history_report_title), titlePaint)
         y += 8
 
-        drawLine("Fecha de generación: $generatedDate")
-        drawLine("Categoría: ${selectedCategory ?: "Todas"}")
-        drawLine("Desde: ${startDateMillis?.let { formatDate(it) } ?: "Sin filtro"}")
-        drawLine("Hasta: ${endDateMillis?.let { formatDate(it) } ?: "Sin filtro"}")
-        drawLine("Cantidad de gastos: ${visibleExpenses.size}")
-        drawLine("Total exportado: ${formatAmount(total)}")
+        drawLine(getString(R.string.generated_date, generatedDate))
+        drawLine(getString(R.string.category_label, categoryText))
+        drawLine(getString(R.string.from_label, startText))
+        drawLine(getString(R.string.to_label, endText))
+        drawLine(getString(R.string.exported_expense_count, visibleExpenses.size))
+        drawLine(getString(R.string.exported_total, formatAmount(total)))
         y += 16
 
-        drawLine("Detalle de gastos", subtitlePaint)
+        drawLine(getString(R.string.expense_detail_title), subtitlePaint)
         y += 8
 
         visibleExpenses.forEachIndexed { index, expense ->
-            drawLine("${index + 1}. ${expense.category}", boldPaint)
-            drawLine("Fecha: ${formatDate(expense.date)}")
-            drawLine("Descripción: ${expense.description}")
-            drawLine("Monto: ${formatAmount(expense.amount)}")
+            drawLine("${index + 1}. ${getCategoryLabel(expense.category)}", boldPaint)
+            drawLine(getString(R.string.date_label, formatDate(expense.date)))
+            drawLine(getString(R.string.description_label, expense.description))
+            drawLine(getString(R.string.amount_label, formatAmount(expense.amount)))
             y += 10
         }
 

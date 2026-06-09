@@ -5,23 +5,21 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.core.content.getSystemService
 import com.catedra.misgastos.R
 
 object NotificationHelper {
 
     private const val CHANNEL_ID = "expense_alerts_channel"
-    private const val CHANNEL_NAME = "Alertas de gastos"
     private const val NOTIFICATION_ID = 1001
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                CHANNEL_NAME,
+                context.getString(R.string.expense_alerts_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notificaciones cuando se supere el límite mensual de gastos"
+                description = context.getString(R.string.expense_alerts_channel_description)
             }
 
             val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -42,11 +40,15 @@ object NotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Límite mensual superado")
-            .setContentText("Superaste tu límite mensual!!!")
+            .setContentTitle(context.getString(R.string.limit_exceeded_notification_title))
+            .setContentText(context.getString(R.string.limit_exceeded_notification_text))
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    "Superaste tu límite mensual de gastos. Total actual: $monthlyTotalFormatted. Límite configurado: $monthlyLimitFormatted."
+                    context.getString(
+                        R.string.limit_exceeded_notification_detail,
+                        monthlyTotalFormatted,
+                        monthlyLimitFormatted
+                    )
                 )
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
