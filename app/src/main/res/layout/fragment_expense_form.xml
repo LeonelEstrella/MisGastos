@@ -91,6 +91,32 @@
             app:strokeColor="#0B6B2B"
             app:strokeWidth="1dp" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/buttonSuggestFromReceipt"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="12dp"
+            android:text="Sugerir datos desde comprobante"
+            android:textAllCaps="false"
+            android:textColor="#0B6B2B"
+            android:textStyle="bold"
+            app:backgroundTint="#FFFFFF"
+            app:cornerRadius="24dp"
+            app:icon="@drawable/ic_receipt"
+            app:iconGravity="textStart"
+            app:iconTint="#0B6B2B"
+            app:strokeColor="#0B6B2B"
+            app:strokeWidth="1dp" />
+
+        <ProgressBar
+            android:id="@+id/progressOcr"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:indeterminateTint="#0B6B2B"
+            android:visibility="gone" />
+
         <FrameLayout
             android:id="@+id/containerReceiptPreview"
             android:layout_width="match_parent"

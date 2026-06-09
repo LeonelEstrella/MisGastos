@@ -25,6 +25,11 @@ import com.catedra.misgastos.data.repository.SettingsRepository
 import com.catedra.misgastos.utils.NotificationHelper
 import android.widget.ArrayAdapter
 import com.catedra.misgastos.R
+import android.widget.Toast
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.catedra.misgastos.utils.ReceiptTextAnalyzer
 
 class ExpenseFormFragment : Fragment() {
 
@@ -176,6 +181,10 @@ class ExpenseFormFragment : Fragment() {
 
         binding.buttonSelectReceipt.setOnClickListener {
             pickImageLauncher.launch("image/*")
+        }
+
+        binding.buttonSuggestFromReceipt.setOnClickListener {
+            suggestDataFromReceipt()
         }
 
         binding.buttonRemoveReceipt.setOnClickListener {
@@ -370,6 +379,96 @@ class ExpenseFormFragment : Fragment() {
         binding.textError.isVisible = true
         binding.textError.text = message
     }
+
+
+    private fun setOcrLoading(isLoading: Boolean) {
+        binding.progressOcr.isVisible = isLoading
+        binding.buttonSuggestFromReceipt.isEnabled = !isLoading
+        binding.buttonSelectReceipt.isEnabled = !isLoading
+        binding.buttonSave.isEnabled = !isLoading
+
+        binding.buttonSuggestFromReceipt.text =
+            if (isLoading) {
+                "Leyendo comprobante..."
+            } else {
+                "Sugerir datos desde comprobante"
+            }
+    }
+
+
+    private fun suggestDataFromReceipt() {
+        val uri = selectedImageUri
+
+        if (uri == null) {
+            showError("Primero agregá una imagen del comprobante")
+            return
+        }
+
+        try {
+            setOcrLoading(true)
+            binding.textError.isVisible = false
+
+            val image = InputImage.fromFilePath(requireContext(), uri)
+
+            val recognizer = TextRecognition.getClient(
+                TextRecognizerOptions.DEFAULT_OPTIONS
+            )
+
+            recognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    val recognizedText = visionText.text
+
+                    if (recognizedText.isBlank()) {
+                        showError("No se detectó texto en el comprobante")
+                        return@addOnSuccessListener
+                    }
+
+                    val suggestion = ReceiptTextAnalyzer.analyze(recognizedText)
+
+                    applySuggestionToForm(suggestion)
+
+                    Toast.makeText(
+                        requireContext(),
+                        "Sugerencias cargadas. Revisalas antes de guardar.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                .addOnFailureListener { exception ->
+                    showError(exception.message ?: "No se pudo leer el comprobante")
+                }
+                .addOnCompleteListener {
+                    setOcrLoading(false)
+                }
+
+        } catch (e: Exception) {
+            setOcrLoading(false)
+            showError(e.message ?: "Error al procesar la imagen")
+        }
+    }
+
+
+    private fun applySuggestionToForm(
+        suggestion: com.catedra.misgastos.utils.ExpenseSuggestion
+    ) {
+        suggestion.amount?.let { amount ->
+            binding.editAmount.setText("%.2f".format(amount))
+        }
+
+        suggestion.category?.let { category ->
+            val categories= getCategories()
+            val index = categories.indexOf(category)
+            if (index >= 0) {
+                binding.spinnerCategory.setSelection(index)
+            }
+        }
+
+        suggestion.description?.let { description ->
+            if (binding.editDescription.text.isNullOrBlank()) {
+                binding.editDescription.setText(description)
+            }
+        }
+    }
+
 
     private suspend fun checkMonthlyLimitAndNotify(previousMonthlyTotal : Double) {
         val settings = settingsRepository.getSettings()
