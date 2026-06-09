@@ -30,6 +30,10 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.catedra.misgastos.utils.ReceiptTextAnalyzer
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.pdf.PdfRenderer
+import com.google.mlkit.vision.text.Text
 
 class ExpenseFormFragment : Fragment() {
 
@@ -79,7 +83,13 @@ class ExpenseFormFragment : Fragment() {
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
                 selectedImageUri = uri
-                binding.imageReceiptPreview.setImageURI(uri)
+                val mimeType = requireContext().contentResolver.getType(uri)
+
+                if (mimeType == "application/pdf") {
+                    binding.imageReceiptPreview.setImageResource(R.drawable.ic_pdf)
+                } else {
+                    binding.imageReceiptPreview.setImageURI(uri)
+                }
                 binding.containerReceiptPreview.isVisible = true
             }
         }
@@ -180,7 +190,7 @@ class ExpenseFormFragment : Fragment() {
         }
 
         binding.buttonSelectReceipt.setOnClickListener {
-            pickImageLauncher.launch("image/*")
+            pickImageLauncher.launch("*/*")
         }
 
         binding.buttonSuggestFromReceipt.setOnClickListener {
@@ -408,7 +418,7 @@ class ExpenseFormFragment : Fragment() {
             setOcrLoading(true)
             binding.textError.isVisible = false
 
-            val image = InputImage.fromFilePath(requireContext(), uri)
+            val image = createInputImageFromUri(uri)
 
             val recognizer = TextRecognition.getClient(
                 TextRecognizerOptions.DEFAULT_OPTIONS
@@ -467,6 +477,48 @@ class ExpenseFormFragment : Fragment() {
                 binding.editDescription.setText(description)
             }
         }
+    }
+
+    private fun createInputImageFromUri(uri: Uri): InputImage {
+        val mimeType = requireContext().contentResolver.getType(uri)
+
+        return if (mimeType == "application/pdf") {
+            val bitmap = renderPdfFirstPage(uri)
+            InputImage.fromBitmap(bitmap, 0)
+        } else {
+            InputImage.fromFilePath(requireContext(), uri)
+        }
+    }
+
+    private fun renderPdfFirstPage(uri: Uri): Bitmap {
+        val fileDescriptor =
+            requireContext().contentResolver.openFileDescriptor(uri, "r")
+                ?: throw Exception("No se pudo abrir el PDF")
+
+        val renderer = PdfRenderer(fileDescriptor)
+        val page = renderer.openPage(0)
+
+        val bitmap = Bitmap.createBitmap(
+            page.width * 2,
+            page.height * 2,
+            Bitmap.Config.ARGB_8888
+        )
+
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+
+        page.render(
+            bitmap,
+            null,
+            null,
+            PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
+        )
+
+        page.close()
+        renderer.close()
+        fileDescriptor.close()
+
+        return bitmap
     }
 
 

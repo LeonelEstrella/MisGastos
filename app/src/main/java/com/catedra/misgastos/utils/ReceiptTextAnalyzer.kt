@@ -25,30 +25,117 @@ object ReceiptTextAnalyzer {
     }
 
     private fun extractAmount(lines: List<String>): Double? {
+
+        val saldoTotalLine = lines.firstOrNull { line ->
+            line.lowercase().contains("saldo total")
+        }
+
+        if (saldoTotalLine != null) {
+            val amounts = extractCurrencyAmountsFromLine(saldoTotalLine)
+            if (amounts.isNotEmpty()) {
+                return amounts.lastOrNull()
+            }
+        }
+
+        val ignoredKeywords = listOf(
+            "cuit",
+            "dni",
+            "iva",
+            "cae",
+            "factura",
+            "ticket",
+            "ingresos brutos",
+            "iibb",
+            "calle",
+            "av",
+            "avenida",
+            "piso",
+            "depto",
+            "domicilio",
+            "dirección",
+            "direccion",
+            "buenos aires",
+            "cp"
+        )
+
+        val totalToPayKeywords = listOf(
+            "total a pagar",
+            "importe a pagar",
+            "monto a pagar",
+            "a pagar"
+        )
+
+        val totalToPayAmounts = lines
+            .filter { line ->
+                val lower = line.lowercase()
+
+                totalToPayKeywords.any { keyword ->
+                    lower.contains(keyword)
+                } &&
+                        ignoredKeywords.none { keyword ->
+                            lower.contains(keyword)
+                        }
+            }
+            .flatMap { line ->
+                extractAmountsFromLine(line)
+            }
+
+        if (totalToPayAmounts.isNotEmpty()) {
+            return totalToPayAmounts.lastOrNull()
+        }
+
+        val totalToPayLineIndex = lines.indexOfFirst { line ->
+            val lower = line.lowercase()
+            totalToPayKeywords.any { keyword -> lower.contains(keyword) }
+        }
+
+        if (totalToPayLineIndex >= 0) {
+            val nearbyAmounts = lines
+                .drop(totalToPayLineIndex)
+                .take(4)
+                .flatMap { line -> extractAmountsFromLine(line) }
+
+            if (nearbyAmounts.isNotEmpty()) {
+                return nearbyAmounts.firstOrNull()
+            }
+        }
+
         val priorityKeywords = listOf(
-            "total",
             "importe total",
             "monto total",
-            "a pagar",
-            "pago",
-            "subtotal"
+            "total"
         )
 
         val priorityAmounts = lines
             .filter { line ->
+                val lower = line.lowercase()
+
                 priorityKeywords.any { keyword ->
-                    line.lowercase().contains(keyword)
-                }
+                    lower.contains(keyword)
+                } &&
+                        ignoredKeywords.none { keyword ->
+                            lower.contains(keyword)
+                        }
             }
-            .flatMap { line -> extractAmountsFromLine(line) }
+            .flatMap { line ->
+                extractAmountsFromLine(line)
+            }
 
         if (priorityAmounts.isNotEmpty()) {
-            return priorityAmounts.maxOrNull()
+            return priorityAmounts.lastOrNull()
         }
 
-        val allAmounts = lines.flatMap { line ->
-            extractAmountsFromLine(line)
-        }
+        val allAmounts = lines
+            .filter { line ->
+                val lower = line.lowercase()
+
+                ignoredKeywords.none { keyword ->
+                    lower.contains(keyword)
+                }
+            }
+            .flatMap { line ->
+                extractAmountsFromLine(line)
+            }
 
         return allAmounts.maxOrNull()
     }
@@ -67,7 +154,9 @@ object ReceiptTextAnalyzer {
             .mapNotNull { match ->
                 normalizeAmount(match.value)
             }
-            .filter { it > 0 }
+            .filter { amount ->
+                amount > 0 && amount < 10_000_000
+            }
             .toList()
     }
 
@@ -183,5 +272,18 @@ object ReceiptTextAnalyzer {
 
     private fun containsAny(text: String, vararg words: String): Boolean {
         return words.any { word -> text.contains(word) }
+    }
+
+    private fun extractCurrencyAmountsFromLine(line: String): List<Double> {
+        val regex = Regex("""\$\s*\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})""")
+
+        return regex.findAll(line)
+            .mapNotNull { match ->
+                normalizeAmount(match.value)
+            }
+            .filter { amount ->
+                amount > 0 && amount < 10_000_000
+            }
+            .toList()
     }
 }
