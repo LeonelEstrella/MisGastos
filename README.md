@@ -1,6 +1,6 @@
 # MisGastos
 
-}
+
 ## Integrantes
 - Leandro Javier Monzón
 - Alan Leonel Estrella
